@@ -107,7 +107,7 @@ class JMScriptItems:
 
         self._checkDmpDirExst_()                            # Проверка, что общий каталог для дампов существует
         
-        print("\n\n* * * * JMScript_Details (ver. 1.2) * * * *")
+        print("\n\n* * * * JMScript_Details (ver. 1.3) * * * *")
         print("\n  * * * Класс для сбора и классификации данных сэмплеров JMeter * * *")
         print("\n\n                   Copyright (c) 2019 Лобов Евгений                    \n\n")
 
@@ -432,7 +432,9 @@ class JMScriptItems:
         dtPostFx = self.dtPrefWithZero(self._currDate_.day) + self.dtPrefWithZero(self._currDate_.month) + str(self._currDate_.year)
         #numOfExstFl = len([fl for fl in os.listdir('jmProj_dumps') if fl.find('_' + elmPstfx + '-' + dtPostFx) != -1])
         dtExstFlLst = [fl for fl in os.listdir('jmProj_dumps') if fl.find('dump_' + self.setFName.rpartition('.')[0] + '_' + dtPostFx) != -1]
-        dtExstFlLst.sort() if len(dtExstFlLst) > 0 else dtExstFlLst.append('empty_elem_0')
+        if len(dtExstFlLst) == 0:
+            dtExstFlLst.append('empty_elem_0')
+        dtExstFlLst.sort(key = lambda flNum: int(flNum.rpartition('_')[2]))
         lastDtFlNum = int(dtExstFlLst[len(dtExstFlLst)-1].rpartition('_')[2])
         self._currDumpDir_ = 'dump_' + self.setFName.rpartition('.')[0] + '_' + dtPostFx + '_' + str(lastDtFlNum + 1)
         os.mkdir('jmProj_dumps/' + self._currDumpDir_)

@@ -1,12 +1,12 @@
 # coding: utf8
 
-##Copyright (c) 2017 Лобов Евгений
+##Copyright (c) 2019 Лобов Евгений
 ## <ewhenel@gmail.com>
 ## <evgenel@yandex.ru>
 
 ## This file is part of LRScript_Detail.
 ##
-##    LRScript_Detail is free software: you can redistribute it and/or modify
+##    JMScript_Detail is free software: you can redistribute it and/or modify
 ##    it under the terms of the GNU General Public License as published by
 ##    the Free Software Foundation, either version 3 of the License, or
 ##    (at your option) any later version.
@@ -60,12 +60,18 @@ class JMScriptUsrApi(tk.Frame):
         self._selctdKey_ = None
         self._langDict_ = {'wrkWthSrc_XMLTree': ['Раб. с исх. Xml-дер.', 'Wrk wth src Xml-tree']}
         self._langVar_ = 0
-        print('call_init')
+        self._txtBegin_ = 0.0
+        self._txtEnd_ = tk.END
         #self.mFrame = tk.Frame
         #self.pack()
         #self.createWidgets()
         ###############
         self.xmlMsgLst = []
+
+        self._initText_ = """Перед работой с прилож.\n
+                             ознакомтесь с инструкцией.\n
+		                     Еще какой-нибудь текст добавиться,\n
+		                     далее будет видно."""
 
     def activForm(self):
         #self.mFrame = tk.Frame(self, self)
@@ -209,8 +215,10 @@ class JMScriptUsrApi(tk.Frame):
         
         ##Опция выбора сущности на данный момент выключена
         ####self.lstWrkEnts.pack(side = tk.TOP)
-        self.tstOutText = tk.Text(self._frOutRslts_, bg='white', width=64)
+        self.tstOutText = tk.Text(self._frOutRslts_, state = tk.DISABLED, bg='white', width=64)
         self.tstOutText.pack(side = tk.TOP)
+        self.txtWdgtDelete(False)
+        self.txtWdgtInsert(self._initText_)
         #
         self.frWrInfExtCntrlElm = tk.Frame(self._frOutRslts_)
         self.btWriteChngsToF = tk.Button(self.frWrInfExtCntrlElm, text='Запис. изм.\nв файл')
@@ -292,8 +300,8 @@ class JMScriptUsrApi(tk.Frame):
         self.frGetValByKSF = tk.Frame(self.frGetDictData)
         self.frGetValByKSF.config(borderwidth = 1, bg = 'red')
         self.blnMsg = tk.Balloon(self.frGetValByKSF, initwait = 350, bg='yellow')
-        blnMsgText = 'Внимание!\nНазвания контроллеров и сэмплеров (возможно) были изменены,\nследует сверять в jmeter по файлу "(*.jmx) униф. эл"'
-        self.blnMsg.bind_widget(self.frGetValByKSF, msg = blnMsgText)
+        self.blnMsgText = 'Внимание!\nНазвания контроллеров и сэмплеров (возможно) были изменены,\nследует сверять в jmeter по файлу "(*.jmx) униф. эл"'
+        self.blnMsg.bind_widget(self.frGetValByKSF, msg = self.blnMsgText)
         self.btGetValByKSF = tk.Button(self.frGetValByKSF, text="Значен. для\n кл.-кнтр.-смпл.:")
         self.btGetValByKSF.config(command = self.prcdGetValByKSF)
         self.btGetValByKSF.config(relief='groove')
@@ -347,15 +355,15 @@ class JMScriptUsrApi(tk.Frame):
         
     def prcdCatchJMXFiles(self):
         self.jmscdObj.setPATH = self.vrSPathValue.get()
-        self.tstOutText.delete(0.0, tk.END)
+        self.txtWdgtDelete(False)
         try:
             self.jmscdObj.catchJMXFilesInPath()
             for fl in range(len(self.jmscdObj.scrFlsLst)):
                 self.tstOutText.tag_config("jmx_file_name"+str(fl))
                 self.tstOutText.tag_bind("jmx_file_name"+str(fl), sequence="<Double-Button-1>", func=lambda evt, arg=self.jmscdObj.scrFlsLst[fl-1]: self.prcdFillvrFname(evt, arg))
-                self.tstOutText.insert(tk.END, self.jmscdObj.scrFlsLst[fl-1] + '\n', "jmx_file_name"+str(fl))
+                self.txtWdgtInsert(self.jmscdObj.scrFlsLst[fl-1] + '\n', "jmx_file_name"+str(fl))
         except FileNotFoundError:
-            self.tstOutText.insert(tk.END, 'Директория не найдена')
+            self.txtWdgtInsert('Директория не найдена')
 	    
     def prcdFillvrFname(self, event, chTag):
         self.vrFnameValue.delete(0, tk.END)
@@ -363,18 +371,18 @@ class JMScriptUsrApi(tk.Frame):
         
     def prcdGetJMXMkTree(self):
         self.jmscdObj.setFName = self.getEntryText(self.vrFnameValue)
-        self.tstOutText.delete(0.0, tk.END)
+        self.txtWdgtDelete(False)
         try:
             self.jmscdObj.getJMXFileAndMakeTree()
             self.btTreeUnqNms.config(state = tk.NORMAL)
             self.btUpdateXMLTree.config(state = tk.NORMAL)
-            self.tstOutText.insert(tk.END, 'Загружен файл ' + self.vrFnameValue.get())
+            self.txtWdgtInsert('Загружен файл ' + self.vrFnameValue.get())
         except AttributeError:
-            self.tstOutText.insert(tk.END, 'Не найден *.jmx файл')
+            self.txtWdgtInsert('Не найден *.jmx файл')
         
     def prcdTreeUnqNms(self):
         self.jmscdObj.outFileUniqueNames = self.getEntryText(self.vrUnqFNmValue)
-        self.tstOutText.delete(0.0, tk.END)
+        self.txtWdgtDelete(False)
         self.jmscdObj.xmlTreeStructToUnqNams()
         ##
         self.lsbxPileMCllct.delete(0, tk.END)
@@ -382,12 +390,14 @@ class JMScriptUsrApi(tk.Frame):
             self.lsbxPileMCllct.insert(tk.END, itm[4])
         self.lsbxPileMCllct.selection_set(0,0)
         self.btTreeUnqNms.config(state = tk.DISABLED)
-        self.tstOutText.insert(tk.END, 'Нужно сгенерировать осн. коллекц.\n для ThreadGroup')
+        self.txtWdgtInsert('Нужно сгенерировать осн. коллекц.\nдля ThreadGroup')
         
     def prcdRstrOrigNms(self):
         self.jmscdObj.outFileRestrdOrig = self.getEntryText(self.vrRestreFNmValue)
         self.jmscdObj.setFName = self.getEntryText(self.vrFnameValue)
         self.jmscdObj.restorOrigCntrlNm()
+        self.txtWdgtDelete(True)
+        self.txtWdgtInsert("Файл с оригинальными(восстан.)\nназв. элементов дерева создан\n---" + self.jmscdObj.outFileRestrdOrig + "---")
         
     def prcdPileMCllct(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
@@ -482,6 +492,8 @@ class JMScriptUsrApi(tk.Frame):
         self._selctdItemsLst_.clear()
         #for i in tmpLst:
         ##print(self.jmscdObj._linksToUpdate_)
+        self.txtWdgtDelete(True)
+        self.txtWdgtInsert("Измен. добавлены в дерево,\nпосле обнов. будут видны\nпри работе с парам.")
         del tmpChkLst
         del tmpLst
         
@@ -493,6 +505,7 @@ class JMScriptUsrApi(tk.Frame):
         return None
         
     def crtChkLstItms(self, itmCllctn):
+        self.txtWdgtDelete(False)
         ##print(str(itmCllctn))
         self._selctdItemsLst_.clear()
         [wdg.destroy() for wdg in self.frOutRslts.subwidgets_all() if (isinstance(wdg, tk.CheckList))]
@@ -526,15 +539,29 @@ class JMScriptUsrApi(tk.Frame):
         self.jmscdObj.updateXMLTree()
         self.jmscdObj._linksToUpdate_ = ()
         self.btUpdateXMLTree.config(state = tk.DISABLED)
+        self.txtWdgtDelete(True)
+        self.txtWdgtInsert("Текущее XML-дерево успешно обновлено")
         
     def prcdWrtXmlTree(self):
         self.jmscdObj.outFileUniqueNames = self.vrUnqFNmValue.get()
         self.jmscdObj.wrtTreeToFile()
+        self.txtWdgtDelete(True)
+        self.txtWdgtInsert("Коллекц. успешно запис. в файл\n---" + self.jmscdObj.outFileUniqueNames + "---")
 
-    def printMsg(self, msg):
-        indx = '%d.%d' % (0,0)
-        self.tstOutText.delete(0.0, tk.END)
-        self.tstOutText.insert(tk.END, msg)
+    def txtWdgtInsert(self, text, *tags):
+        self._txtBegin_ = 0.0
+        self.tstOutText.config(state = tk.NORMAL)
+        self.tstOutText.insert(self._txtEnd_, text, *tags)
+        self.tstOutText.config(state = tk.DISABLED)
+
+    def txtWdgtDelete(self, ifWndKeep = True):
+        wndIsTxtLst = self.tstOutText.window_names()
+        srchRes = self.tstOutText.search(pattern = r'[\w\s-]+', index = self._txtBegin_, stopindex = self._txtEnd_, regexp = True)
+        if len(wndIsTxtLst) > 0 and ifWndKeep == True:
+            self._txtBegin_ = srchRes
+        self.tstOutText.config(state = tk.NORMAL)
+        self.tstOutText.delete(self._txtBegin_, self._txtEnd_)
+        self.tstOutText.config(state = tk.DISABLED)
 	
     def test1(self):
         self._langVar_ = 1
