@@ -1,12 +1,12 @@
 # coding: utf8
 
-##Copyright (c) 2017 Лобов Евгений
+##Copyright (c) 2019 Лобов Евгений
 ## <ewhenel@gmail.com>
 ## <evgenel@yandex.ru>
 
-## This file is part of LRScript_Detail.
+## This file is part of JMScript_Detail.
 ##
-##    LRScript_Detail is free software: you can redistribute it and/or modify
+##    JMScript_Detail is free software: you can redistribute it and/or modify
 ##    it under the terms of the GNU General Public License as published by
 ##    the Free Software Foundation, either version 3 of the License, or
 ##    (at your option) any later version.
@@ -46,6 +46,8 @@ import urllib
 import datetime
 import pickle
 import xml.etree.ElementTree as ET
+import logging
+import exceptionHandler as excpt
 
 class JMScriptItems:
 
@@ -59,7 +61,7 @@ class JMScriptItems:
         
         self.setFName = 'example.jmx'                       # Название .jmx файла, должно присутствовать в каталоге self.scrFlsLst  
         
-        self.setClassDir = "/home/evgen/work/JM_proj_curr"       # Путь к директории с данным классом
+        self.setClassDir = os.getcwd()                      # Путь к директории с данным классом
         
         self._currDate_ = datetime.datetime.today()         # Текущая дата
         self._xmlTree_ = None                               # Полученное xml-дерево из файла скрипта JMeter
@@ -105,16 +107,66 @@ class JMScriptItems:
         self._linksToUpdate_ = tuple()                      # Вспомогательный картеж для хранения изменений перед обновлением файлов
         self._selctdKey_ = None
 
-        self._checkDmpDirExst_()                            # Проверка, что общий каталог для дампов существует
+        #self._checkDmpDirExst_()                           # Проверка, что общий каталог для дампов существует
+        self.excptHandl = excpt.ExceptHandler()             # Создание объекта класса ExceptHandler
+        self.logger = None                                  # Логгер 
+        self._logOffset_ = 0                                # Текущая позиция в файле лога приложения
+        self._loggerInit_()                                 # Инициализация логгера
+        self._consHandlerInit_()                            # Инициализация хэндлера для ошибок в консоле
+        self.excptHandl.logger = self.logger                # Назначение логгера в классе exceptionHandler
+
+        self.logger.info("JMScript_Detail object created")
         
         print("\n\n* * * * JMScript_Details (ver. 1.3) * * * *")
         print("\n  * * * Класс для сбора и классификации данных сэмплеров JMeter * * *")
         print("\n\n                   Copyright (c) 2019 Лобов Евгений                    \n\n")
 
+		
+## Необработанные исключения перенаправляются в логгер
+    def _unhandledExcept_(self, exc_type, exc_value, exc_traceback):
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys._excepthook_(exc_type, exc_value, exc_traceback)
+            return
+        self.logger.error("Exception", exc_info = (exc_type, exc_value, exc_traceback))
+
+## Определение логгера
+    def _loggerInit_(self):
+        self.logger = logging.getLogger('jmscript.detail')
+        self.logger.setLevel(logging.INFO)
+
+## Добавление хэндлера для вывода ошибок в консоль
+    def _consHandlerInit_(self):
+        self.logHandler = logging.StreamHandler()
+        self.logHandler.setLevel(logging.ERROR)
+        self.logFormat = logging.Formatter('%(asctime)s - [%(name)s] - %(levelname)s - %(message)s')
+        self.logHandler.setFormatter(self.logFormat)
+        self.logger.addHandler(self.logHandler)
+
+## Перемещение лога сессии работы с приложения в дамп-директорию
+    def _moveLogToDmp_(self):
+        self.logger.info("Run app log to be moved to " + self.setPATH + '/jmProj_dumps/' + self._currDumpDir_ + '/jmscript_detail.log')
+        fAppLog = open(self.setClassDir + '/jmscript.log', '+r')
+        fAppLog.seek(self._logOffset_)
+        buffAppLog = fAppLog.read()
+        fAppLog.close()
+        fDetLog = open(self.setPATH + '/jmProj_dumps/' + self._currDumpDir_ + '/jmscript_detail.log', '+w')
+        fDetLog.write(buffAppLog)
+        fDetLog.close()
+        logger = self.logger.manager.loggerDict['jmscript']
+        handler = self.logger.manager.loggerDict['jmscript'].handlers[0]
+        logger.removeHandler(handler)
+        logHandler = logging.FileHandler(self.setPATH + '/jmProj_dumps/' + self._currDumpDir_ + '/jmscript_detail.log')
+        logHandler.setLevel(logging.INFO)
+        logFormat = logging.Formatter('%(asctime)s - [%(name)s] - %(levelname)s - %(message)s')
+        logHandler.setFormatter(logFormat)
+        logger.addHandler(logHandler)
+        del buffAppLog
+
 ## Проверка что существует директория для дампов
     def _checkDmpDirExst_(self):
         tmpDmpDirLst = [dir for dir in os.listdir(self.setPATH) if dir == 'jmProj_dumps']
         if len(tmpDmpDirLst) == 0:
+            self.logger.info("Dump directory doesn't exist, will be created")
             os.mkdir('jmProj_dumps')
         del tmpDmpDirLst
  
@@ -135,8 +187,11 @@ class JMScriptItems:
         tmpFlLst = []
         ifFExst = bool(len([f for f in self.scrFlsLst if f == self.setFName]) == 1)
         if (ifFExst):
-            tree = ET.parse(self.setFName)            
+            self._checkDmpDirExst_()
+            tree = ET.parse(self.setFName)
+            self.logger.info("JMX-file parsed and loaded, xml-tree created")
         else:
+            self.logger.info("Can't load jmx-file")
             print(" !> Не найдено файлов по заданной маске, проверить можно тут 'setFName', или не та директория - тут'setPATH'")
             tree = None
         self._xmlTree_ = tree
@@ -354,6 +409,7 @@ class JMScriptItems:
         self._cutxElmPartInRestoCllctn_()
         try:
             with open(self.setPATH + '/jmProj_dumps/' + self._currDumpDir_ + '/' + self._currDumpFName_ + '.txt', 'wb+') as fObj:
+                self.logger.info("Dump file %s stored in dump directory", self._currDumpFName_)
                 pickle.dump(self._currBkpCntrLst_, fObj)
             fObj.close()
             return False
@@ -438,6 +494,8 @@ class JMScriptItems:
         lastDtFlNum = int(dtExstFlLst[len(dtExstFlLst)-1].rpartition('_')[2])
         self._currDumpDir_ = 'dump_' + self.setFName.rpartition('.')[0] + '_' + dtPostFx + '_' + str(lastDtFlNum + 1)
         os.mkdir('jmProj_dumps/' + self._currDumpDir_)
+        self.logger.info("Working directory " + self.setPATH + "/jmProj_dumps/" + self._currDumpDir_ + " created")
+        self._moveLogToDmp_()
 
 ## Метод добавляет нули, если месяц или число возвращаются одним символом (1, 4 и т.д.)
 

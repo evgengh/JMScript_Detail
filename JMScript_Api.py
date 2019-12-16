@@ -38,10 +38,35 @@
 
 
 import os
-#import tkinter as tk
+import sys
+import functools
+import logging
+import traceback
 from tkinter import tix as tk
 import JMScript_Detail as jmscd
+import exceptionHandler as excpt
 
+
+def catch_except(func):
+    @functools.wraps(func)
+    def decorat_func(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except excpt.TkinterRuntimeExcept as tkexcpt:
+            sys.excepthook(tkexcpt.__class__, tkexcpt, tkexcpt.__traceback__)
+            return func(*args, **kwargs)
+        except Exception as e:
+            raise e
+    return decorat_func
+
+def class_meth_decor(cls):
+    for attrName in dir(cls):
+        attrValue = getattr(cls, attrName)
+        if hasattr(attrValue, '__call__') and type(attrValue).__name__ == 'function':
+            setattr(cls, attrName, catch_except(attrValue))
+    return cls
+
+@class_meth_decor
 class JMScriptUsrApi(tk.Frame):
 
     def __init__(self, master=None):
@@ -58,8 +83,6 @@ class JMScriptUsrApi(tk.Frame):
         self._incrOnGenVar_.set(False)
         self._selctdItemsLst_ = []
         self._selctdKey_ = None
-        self._langDict_ = {'wrkWthSrc_XMLTree': ['Раб. с исх. Xml-дер.', 'Wrk wth src Xml-tree']}
-        self._langVar_ = 0
         self._txtBegin_ = 0.0
         self._txtEnd_ = tk.END
         #self.mFrame = tk.Frame
@@ -69,13 +92,35 @@ class JMScriptUsrApi(tk.Frame):
         self.xmlMsgLst = []
 
         self._initText_ = """Перед работой с прилож.\n
-                             ознакомтесь с инструкцией.\n
-		                     Еще какой-нибудь текст добавиться,\n
-		                     далее будет видно."""
+		ознакомтесь с инструкцией.\n
+		Еще какой-нибудь текст добавиться,\n
+		далее будет видно."""
+        self.excptHandl = excpt.ExceptHandler()
+        tk.Tk.report_callback_exception = self.excptHandl.tkinter_callback_except
+        self.logger = None
+        self._loggerInit_()
+        self._consHandlerInit_()
+        self.excptHandl.logger = self.logger
+        self._logOffset_ = 0
+
+## Определение логгера
+    def _loggerInit_(self):
+        self.logger = logging.getLogger('jmscript.api')
+        self.logger.setLevel(logging.INFO)
+
+## Добавление хэндлера для вывода ошибок в консоль
+    def _consHandlerInit_(self):
+        self.logHandler = logging.StreamHandler()
+        self.logHandler.setLevel(logging.ERROR)
+        self.logFormat = logging.Formatter('%(asctime)s - [%(name)s] - %(levelname)s - %(message)s')
+        self.logHandler.setFormatter(self.logFormat)
+        self.logger.addHandler(self.logHandler)
 
     def activForm(self):
         #self.mFrame = tk.Frame(self, self)
         self._createWidgets_()
+        self.logger.info("Widgets created")
+        self.jmscdObj._logOffset_ = self._logOffset_
         #self.mFrame.pack()
         #self.createWidgets()
 
@@ -98,11 +143,8 @@ class JMScriptUsrApi(tk.Frame):
         
         self.mCllctnFrame = tk.Frame(self.mFrame)
         
-        ##
         self._lbBtnLstFrame_ = self.getSubWgts(self.btnLstFrame, tk._dummyLabel)
-        ##curr
-        self._lbBtnLstFrame_.config(text = self._langDict_['wrkWthSrc_XMLTree'][self._langVar_])
-        #self._lbBtnLstFrame_.config(text = 'Раб. с исх. Xml-дер.')
+        self._lbBtnLstFrame_.config(text = 'Раб. с исх. Xml-дер.')
         self._frBtnLstFrame_ = self.getSubWgts(self.btnLstFrame, tk._dummyFrame)
         
         self.varsFrame = tk.Frame(self._frBtnLstFrame_, borderwidth=2, bg = 'blue')
@@ -115,15 +157,6 @@ class JMScriptUsrApi(tk.Frame):
         self._btnLstFrame_ = tk.Frame(self._frBtnLstFrame_, borderwidth = 2)
         
         self.btCatchJMXFiles = tk.Button(self._btnLstFrame_, text="Собрать все \n.jmx файлы", fg="green")
-	
-	##curr
-        self.btChngLang = tk.Button(self._btnLstFrame_, text = "Test")
-        self.btChngLang.config(command = self.test1, state = tk.DISABLED)
-        self.btChngLang.config(relief='raised')
-        self.btChngLang.pack(fill = 'x')
-
-
-	##
         
 	#self.btCatchJMXFiles.config(command = self.testFrame)
         self.btCatchJMXFiles.config(command = self.prcdCatchJMXFiles)
@@ -215,7 +248,7 @@ class JMScriptUsrApi(tk.Frame):
         
         ##Опция выбора сущности на данный момент выключена
         ####self.lstWrkEnts.pack(side = tk.TOP)
-        self.tstOutText = tk.Text(self._frOutRslts_, state = tk.DISABLED, bg='white', width=64)
+        self.tstOutText = tk.Text(self._frOutRslts_, state = tk.DISABLED, bg='#FFEFD5', width=64)
         self.tstOutText.pack(side = tk.TOP)
         self.txtWdgtDelete(False)
         self.txtWdgtInsert(self._initText_)
@@ -562,10 +595,3 @@ class JMScriptUsrApi(tk.Frame):
         self.tstOutText.config(state = tk.NORMAL)
         self.tstOutText.delete(self._txtBegin_, self._txtEnd_)
         self.tstOutText.config(state = tk.DISABLED)
-	
-    def test1(self):
-        self._langVar_ = 1
-        #self.root.withdraw()
-        #self.root.deiconify()
-        self._createWidgets_()
-        #self._lbBtnLstFrame_.config(text = self._langDict_['wrkWthSrc_XMLTree'][self._langVar_])
