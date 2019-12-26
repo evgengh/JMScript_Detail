@@ -11,7 +11,7 @@
 ##    the Free Software Foundation, either version 3 of the License, or
 ##    (at your option) any later version.
 ##
-##    LRScript_Detail is distributed in the hope that it will be useful,
+##    JMScript_Detail is distributed in the hope that it will be useful,
 ##    but WITHOUT ANY WARRANTY; without even the implied warranty of
 ##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ##    GNU General Public License for more details.
@@ -422,6 +422,7 @@ class JMScriptUsrApi(tk.Frame):
         for itm in self.jmscdObj._thrGrpLst_:
             self.lsbxPileMCllct.insert(tk.END, itm[4])
         self.lsbxPileMCllct.selection_set(0,0)
+        self.logger.info("List of ThreadGroup entries widget created")
         self.btTreeUnqNms.config(state = tk.DISABLED)
         self.txtWdgtInsert('Нужно сгенерировать осн. коллекц.\nдля ThreadGroup')
         
@@ -436,7 +437,10 @@ class JMScriptUsrApi(tk.Frame):
         self.jmscdObj.setEntity(self.entStrVar.get())
         ##self.jmscdObj._currThrGrNam_ = self.lsbxPileMCllct.curselection()[0] + 1
         self.jmscdObj._currThrGrNam_ = self.jmscdObj._thrGrpLst_[self.lsbxPileMCllct.curselection()[0]][4]
+        self.logger.info("ThreadGroup %s chosen", self.jmscdObj._currThrGrNam_)
         self.jmscdObj.extrHTTPDataNamesAndLinks()
+        self.txtWdgtDelete(True)
+        self.txtWdgtInsert("Сгенерирована коллекция эелементов для ThreadGroup\n---" + self.jmscdObj._currThrGrNam_ + "---")
         
     def prcdGetDataDictItem(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
@@ -567,6 +571,7 @@ class JMScriptUsrApi(tk.Frame):
             self.dctItmsChkLst.setstatus(i, mode='on')
         self.tstOutText.config(state = tk.DISABLED)
         del tmpChkLst
+        self.logger.info("Checklist of dictionary entries created in Text Widget")
         
     def prcdUpdtXMLTree(self):
         self.jmscdObj.updateXMLTree()

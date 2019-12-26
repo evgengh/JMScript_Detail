@@ -11,7 +11,7 @@
 ##    the Free Software Foundation, either version 3 of the License, or
 ##    (at your option) any later version.
 ##
-##    LRScript_Detail is distributed in the hope that it will be useful,
+##    JMScript_Detail is distributed in the hope that it will be useful,
 ##    but WITHOUT ANY WARRANTY; without even the implied warranty of
 ##    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ##    GNU General Public License for more details.
@@ -223,6 +223,7 @@ class JMScriptItems:
         self._dumpOrigCntrlNm_()
         try:
             self._xmlTree_.write(self.outFileUniqueNames)
+            self.logger.info("File %s created, collection with unique names loaded in the xml-tree", self.outFileUniqueNames)
         except:
             print('Ошибка при сохранении дерева: ' + str(sys.exc_info()[0]))
         
@@ -242,6 +243,7 @@ class JMScriptItems:
             #print(self._thrGrpLst_)
         else:
             self._thrGrpLst_ = self._currBkpCntrLst_.copy()
+        self.logger.info("All ThreadGroups in TestPlan extracted")
         del tmpNodeLst
         del tmpThGrLst
         
@@ -261,23 +263,22 @@ class JMScriptItems:
         xSet = self._pumpUpXPathToBuild_('nodeProps')
         fndClss = node.find(xSet[0])
         return bool(fndClss.text.find(ndClass)!=-1)
-    
+
 ## Метод извлечения Нодов для всех элементов класса Controller для каждого элемента ThreadGroup
 
     def _extrCntrllNode_(self):
         tmpLst = []
         xSet = self._pumpUpXPathToBuild_('all_nestNodes')
-        print(self._thrGrpLst_)
+        xSet1 = self._pumpUpXPathToBuild_('prop_nodeName')
         tmpLst = [[itm for itm in thgr[0].findall(xSet[0]) if (self._checkIfxElmIsCntrll_(itm))] for thgr in self._thrGrpLst_]
         for ctLst in tmpLst:
             self._currBkpCntrLst_.clear()
             self._xTreeLocalRoot_ = self._thrGrpLst_[tmpLst.index(ctLst)][0]
             self._xElmNestedMapp_(ctLst, 'org.apache.jmeter.threads.ThreadGroup')
             self._xElmUniqueName_(ctLst, 'org.apache.jmeter.threads.ThreadGroup')
-            ##self._currDumpFName_ = 'pcklUnqNm' + self._appendDateToDmpFile_('ThGr_' + str(tmpLst.index(ctLst) + 1))
-            #self._currDumpFName_ = 'pcklUnqNm' + self._appendDateToDmpFile_('ThGr_' + str(tmpLst.count([])))
-            self._currDumpFName_ = 'pcklUnqNm_ThGr_' + str(tmpLst.count([]))
-            self._dumpOrigCntrlNm_()
+            self._currDumpFName_ = 'pcklUnqNm_ThGr_' + self._xTreeLocalRoot_.find(xSet1[0]).text.replace(" ", "_")
+            self.logger.info("Nodes from ThreadGroup %s exctracted", self._xTreeLocalRoot_.find(xSet1[0]).text)
+            self._dumpOrigCntrlNm_()	
         del tmpLst
     
 ## Метод создание префиксов для структуры составных вложенных элементов (для идентификации в коллекции)
@@ -579,6 +580,7 @@ class JMScriptItems:
         del tmpLinkLst
         self._optimDataDict_()
         self._constrictBkpCl_()
+        self.logger.info("Working collection of elements accumulated")
 ###
             
 
