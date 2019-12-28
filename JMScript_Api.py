@@ -422,6 +422,7 @@ class JMScriptUsrApi(tk.Frame):
         for itm in self.jmscdObj._thrGrpLst_:
             self.lsbxPileMCllct.insert(tk.END, itm[4])
         self.lsbxPileMCllct.selection_set(0,0)
+        self.lsbxPileMCllct.activate(0)
         self.logger.info("List of ThreadGroup entries widget created")
         self.btTreeUnqNms.config(state = tk.DISABLED)
         self.txtWdgtInsert('Нужно сгенерировать осн. коллекц.\nдля ThreadGroup')
@@ -439,7 +440,7 @@ class JMScriptUsrApi(tk.Frame):
         self.jmscdObj._currThrGrNam_ = self.jmscdObj._thrGrpLst_[self.lsbxPileMCllct.curselection()[0]][4]
         self.logger.info("ThreadGroup %s chosen", self.jmscdObj._currThrGrNam_)
         self.jmscdObj.extrHTTPDataNamesAndLinks()
-        self.txtWdgtDelete(True)
+        self.txtWdgtDelete(False)
         self.txtWdgtInsert("Сгенерирована коллекция эелементов для ThreadGroup\n---" + self.jmscdObj._currThrGrNam_ + "---")
         
     def prcdGetDataDictItem(self):

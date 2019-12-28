@@ -227,8 +227,6 @@ class JMScriptItems:
         except:
             print('Ошибка при сохранении дерева: ' + str(sys.exc_info()[0]))
         
-        
-
 ## Метод извлечения Нодов для всех элементов ThreadGroup
 
     def _extrThreadGroupNode_(self):
@@ -243,6 +241,7 @@ class JMScriptItems:
             #print(self._thrGrpLst_)
         else:
             self._thrGrpLst_ = self._currBkpCntrLst_.copy()
+            self._thrGrpLst_.reverse()
         self.logger.info("All ThreadGroups in TestPlan extracted")
         del tmpNodeLst
         del tmpThGrLst
@@ -526,6 +525,8 @@ class JMScriptItems:
         elem.text = txt
 
     def extrHTTPDataNamesAndLinks(self):
+        self._curList_.clear()
+        self._curLinkList_.clear()
         self.setFName = self.outFileUniqueNames
         self.catchJMXFilesInPath()
         self.getJMXFileAndMakeTree()
