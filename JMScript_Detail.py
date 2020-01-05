@@ -525,11 +525,10 @@ class JMScriptItems:
         elem.text = txt
 
     def extrHTTPDataNamesAndLinks(self):
+        self._linksToUpdate_ = tuple()
         self._curList_.clear()
         self._curLinkList_.clear()
         self.setFName = self.outFileUniqueNames
-        ###self.catchJMXFilesInPath()
-        ###self.getJMXFileAndMakeTree()
         xSet = self._pumpUpXPathToBuild_('all_nestNodes')
         xSet_1 = self._pumpUpXPathToBuild_('smplr_Path')
         xSet_2 = self._pumpUpXPathToBuild_('nestTestElm')
@@ -937,8 +936,6 @@ class JMScriptItems:
         if len(self._linksToUpdate_) != 0:
             set(self._linksToUpdate_)
             self._linksToUpdate_ = tuple(self._linksToUpdate_)
-            print(self._linksToUpdate_)
-            #regsFuncTxt_, regsItemTxt_ = (), ()
             xSet = self._pumpUpXPathToBuild_('all_nestNodes')
             xSet_0 = self._pumpUpXPathToBuild_('directChldNodes')
             xSet_1 = self._pumpUpXPathToBuild_('nestTestElm')
@@ -951,31 +948,30 @@ class JMScriptItems:
                 self._extrHostNode_(lnk[1])
                 tmpLst = self._currNode_.findall(xSet[0])
                 nestSmplrs = [elm for elm in tmpLst if self._checkElmTypeClls_(elm, 'HTTPSampler')]
+                smplr = [smpl for smpl in nestSmplrs if smpl.find(xSet[2]).text == lnk[2]].pop(0)
                 if lnk[3] == 'd':
-                    tstElmArgs = [s for f in [i.find(xSet_1[0]).find(xSet_1[0]).find(xSet_2[0]).findall(xSet_0[0]) for i in nestSmplrs] for s in f if len(f)>0]
-                    valsLst = [argN for argN in tstElmArgs if argN.find(xSet_3[0]).text == lnk[0]]
+                    tstElmArgs = smplr.find(xSet_1[0]).find(xSet_1[0]).find(xSet_2[0]).findall(xSet_0[0])
+                    arg = [argN for argN in tstElmArgs if argN.find(xSet_3[0]).text == lnk[0]].pop(0)
                     strToInsert = self.getValueByKeyScrFunc(lnk)
-                    print(valsLst)
-                    for val in valsLst:
-                        val.find(xSet_4[0]).text = strToInsert
+                    arg.find(xSet_4[0]).text = strToInsert
                     del tstElmArgs
                 elif lnk[3] == 'l':
-                    valsLst = [pth for pth in nestSmplrs if pth.find(xSet[2]).text == lnk[2]]
                     strToInsert = self.getValueByKeyScrFunc(lnk)
-                    for val in valsLst:
-                        val.find(xSet_5[0]).text = strToInsert 
+                    smplr.find(xSet_5[0]).text = strToInsert
             del tmpLst
             del nestSmplrs
-            del valsLst
+            del smplr
             self._linksToUpdate_ = tuple()
+            self.logger.info("XML-tree successfully updated")
         else:
+            self.logger.info("Attempt to store empty list of changes to XML-tree")
             print("Изменений в словаре не было - нечего обновлять")
         self._xTreeRoot_ = self._xmlTree_.getroot()
             
     def wrtTreeToFile(self):
         self._xmlTree_.write(self.outFileUniqueNames)
 
-###
+###Лишний код. Надо будет удалить
 
     def updatFiles(self):
         if len(self._linksToUpdate_) != 0:

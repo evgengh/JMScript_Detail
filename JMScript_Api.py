@@ -526,10 +526,7 @@ class JMScriptUsrApi(tk.Frame):
         tmpLst = self.dctItmsChkLst.getselection()
         tmpChkLst = [lstItm[1] for lstItm in self._selctdItemsLst_ if tmpLst.count(lstItm[0]) != 0]
         [self.jmscdObj.setValueByKeyScrFunc(newVal,(self.jmscdObj._selctdKey_,cntrl[0],prm[0])) for cntrl in tmpChkLst for prm in cntrl[1]]
-        #self.jmscdObj.setValueByKeyScrFunc(self, newVal, *keyScrFunc)
         self._selctdItemsLst_.clear()
-        #for i in tmpLst:
-        ##print(self.jmscdObj._linksToUpdate_)
         self.txtWdgtDelete(True)
         self.txtWdgtInsert("Измен. добавлены в дерево,\nпосле обнов. будут видны\nпри работе с парам.")
         del tmpChkLst
@@ -544,7 +541,6 @@ class JMScriptUsrApi(tk.Frame):
         
     def crtChkLstItms(self, itmCllctn):
         self.txtWdgtDelete(False)
-        ##print(str(itmCllctn))
         self._selctdItemsLst_.clear()
         [wdg.destroy() for wdg in self.frOutRslts.subwidgets_all() if (isinstance(wdg, tk.CheckList))]
             #self.dctItmsChkLst.destroy()
@@ -562,11 +558,16 @@ class JMScriptUsrApi(tk.Frame):
         tmpChkLst.header_create(col = 0, itemtype = tk.TEXT, text = self.jmscdObj._selctdKey_)
         self.chkBtnTst = tk.Checkbutton(tmpChkLst, command = self.testCmd, variable = self.dctItmsVar)
         tmpChkLst.add('dctItm_0', itemtype = tk.WINDOW, window = self.chkBtnTst)
+        entrCnt = 0
         for lnNum in range(len(itmCllctn)):
-            indx = '%d.%d' % (lnNum+1, 0)
-            curEntr = '%s_%s' % ('dctItm', str(lnNum+1))
-            self._selctdItemsLst_.append((curEntr, itmCllctn[lnNum]))
-            exec('tmpChkLst.add(eval("curEntr"), itemtype = tk.IMAGETEXT, data = curEntr, text = itmCllctn[lnNum])')
+            for entr in itmCllctn[lnNum][1]:
+                entrCnt += 1
+                indx = '%d.%d' % (entrCnt, 0)
+                curEntr = '%s_%s' % ('dctItm', str(entrCnt))
+                entrTxt = (itmCllctn[lnNum][0] + ': ' + str(entr)) if isinstance(entr, tuple) else itmCllctn[lnNum]
+                entrVal = (itmCllctn[lnNum][0], ((entr),))
+                self._selctdItemsLst_.append((curEntr, entrVal))
+                exec('tmpChkLst.add(eval("curEntr"), itemtype = tk.IMAGETEXT, data = curEntr, text = entrTxt)')
         self.tstOutText.window_create(tk.END, window = self.dctItmsChkLst)
         for i in tmpChkLst.info_children():
             self.dctItmsChkLst.setstatus(i, mode='on')
@@ -576,8 +577,8 @@ class JMScriptUsrApi(tk.Frame):
         
     def prcdUpdtXMLTree(self):
         self.jmscdObj.updateXMLTree()
-        self.jmscdObj._linksToUpdate_ = ()
-        self.btUpdateXMLTree.config(state = tk.DISABLED)
+        #self.jmscdObj._linksToUpdate_ = ()
+        #self.btUpdateXMLTree.config(state = tk.DISABLED)
         self.txtWdgtDelete(True)
         self.txtWdgtInsert("Текущее XML-дерево успешно обновлено")
         
