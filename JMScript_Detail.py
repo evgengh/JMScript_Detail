@@ -528,8 +528,8 @@ class JMScriptItems:
         self._curList_.clear()
         self._curLinkList_.clear()
         self.setFName = self.outFileUniqueNames
-        self.catchJMXFilesInPath()
-        self.getJMXFileAndMakeTree()
+        ###self.catchJMXFilesInPath()
+        ###self.getJMXFileAndMakeTree()
         xSet = self._pumpUpXPathToBuild_('all_nestNodes')
         xSet_1 = self._pumpUpXPathToBuild_('smplr_Path')
         xSet_2 = self._pumpUpXPathToBuild_('nestTestElm')
@@ -937,6 +937,7 @@ class JMScriptItems:
         if len(self._linksToUpdate_) != 0:
             set(self._linksToUpdate_)
             self._linksToUpdate_ = tuple(self._linksToUpdate_)
+            print(self._linksToUpdate_)
             #regsFuncTxt_, regsItemTxt_ = (), ()
             xSet = self._pumpUpXPathToBuild_('all_nestNodes')
             xSet_0 = self._pumpUpXPathToBuild_('directChldNodes')
@@ -954,7 +955,7 @@ class JMScriptItems:
                     tstElmArgs = [s for f in [i.find(xSet_1[0]).find(xSet_1[0]).find(xSet_2[0]).findall(xSet_0[0]) for i in nestSmplrs] for s in f if len(f)>0]
                     valsLst = [argN for argN in tstElmArgs if argN.find(xSet_3[0]).text == lnk[0]]
                     strToInsert = self.getValueByKeyScrFunc(lnk)
-                    print(strToInsert)
+                    print(valsLst)
                     for val in valsLst:
                         val.find(xSet_4[0]).text = strToInsert
                     del tstElmArgs
@@ -969,6 +970,7 @@ class JMScriptItems:
             self._linksToUpdate_ = tuple()
         else:
             print("Изменений в словаре не было - нечего обновлять")
+        self._xTreeRoot_ = self._xmlTree_.getroot()
             
     def wrtTreeToFile(self):
         self._xmlTree_.write(self.outFileUniqueNames)
