@@ -116,6 +116,8 @@ class JMScriptItems:
         self.excptHandl.logger = self.logger                # Назначение логгера в классе exceptionHandler
 
         self.logger.info("JMScript_Detail object created")
+
+        self._infoMsg_ = 'JMScript_Detail (c)'              # Текущее сообщение для вывода пользователю
         
         print("\n\n* * * * JMScript_Details (ver. 1.3) * * * *")
         print("\n  * * * Класс для сбора и классификации данных сэмплеров JMeter * * *")
@@ -188,24 +190,28 @@ class JMScriptItems:
         ifFExst = bool(len([f for f in self.scrFlsLst if f == self.setFName]) == 1)
         if (ifFExst):
             self._checkDmpDirExst_()
-            tree = ET.parse(self.setFName)
+            self._xmlTree_ = ET.parse(self.setFName)
+            self._xTreeRoot_ = self._xmlTree_.getroot()
             self.logger.info("JMX-file parsed and loaded, xml-tree created")
+            self._infoMsg_ = "Загружен файл " + self.setFName
         else:
             self.logger.info("Can't load jmx-file")
-            print(" !> Не найдено файлов по заданной маске, проверить можно тут 'setFName', или не та директория - тут'setPATH'")
-            tree = None
-        self._xmlTree_ = tree
-        self._xTreeRoot_ = self._xmlTree_.getroot()
+            self._infoMsg_ = "Такой *.jmx файл не найден"
 
 ## Метод извлечения названий каталогов в директории setPATH
 
     def catchJMXFilesInPath(self):
         tmpLst = []
-        os.chdir(self.setPATH)
+        try:
+            os.chdir(self.setPATH)
+        except FileNotFoundError:
+            self._infoMsg_ = "Директория не найдена"
+            return -1
         self.scrFlsLst = os.listdir('.')
         tmpLst = [f for f in self.scrFlsLst if f[len(f)-4:].find(".jmx")!=-1]
         self.scrFlsLst = tmpLst
         del tmpLst
+        return 0
         
 ## Метод получения струткуры нодов элементов класса Контроллер (точнее типа, Контроллеры различаются),
 ## а также генерация аналогичной с уникальными идентификаторами (Name).
@@ -214,18 +220,24 @@ class JMScriptItems:
 
     def xmlTreeStructToUnqNams(self):
         #self._xTreeLocalRoot_ = self._xTreeRoot_
-        self._sessDmpDir_()
-        self._extrThreadGroupNode_()
-        self._extrCntrllNode_()
-        self._currBkpCntrLst_ = self._thrGrpLst_.copy()
-        #self._currDumpFName_ = 'pcklUnqNm' + self._appendDateToDmpFile_('TstPl')
-        self._currDumpFName_ = 'pcklUnqNm_TstPl'
-        self._dumpOrigCntrlNm_()
-        try:
-            self._xmlTree_.write(self.outFileUniqueNames)
-            self.logger.info("File %s created, collection with unique names loaded in the xml-tree", self.outFileUniqueNames)
-        except:
-            print('Ошибка при сохранении дерева: ' + str(sys.exc_info()[0]))
+        xSet = self._pumpUpXPathToBuild_('nodeProps')
+        if self._xTreeRoot_.find(xSet[0]).text != "org.apache.jmeter.testelement.TestPlan":
+            logger.error("Wrong root element, class of _xTreeRoot_ is " + self._xTreeRoot_.find(xSet[0]).text)
+            self._msgInfo_ = "Некорректное знач. корня дерева,\n см. лог"
+        else:
+            self._sessDmpDir_()
+            self._extrThreadGroupNode_()
+            self._extrCntrllNode_()
+            self._currBkpCntrLst_ = self._thrGrpLst_.copy()
+            self._currDumpFName_ = 'pcklUnqNm_TstPl_' + self._xTreeRoot_.find(xSet[1]).text.replace(' ', '_') 
+            self._dumpOrigCntrlNm_()
+            try:
+                self._xmlTree_.write(self.outFileUniqueNames)
+                self.logger.info("File %s created, collection with unique names loaded in the xml-tree", self.outFileUniqueNames)
+                self._msgInfo_ = "Нужно сгенерировать осн. коллекц.\nдля ThreadGroup"
+            except:
+                self.logger.error('Error while saving XML-tree to file: ' + str(sys.exc_info()[0]))
+                self._msgInfo_ = "Ошибка при сохранении XML-дерева"
         
 ## Метод извлечения Нодов для всех элементов ThreadGroup
 
@@ -420,42 +432,43 @@ class JMScriptItems:
 ## Метод восстановления ориг. названий нодов из сохраненных в файлах коллекциях
         
     def restorOrigCntrlNm(self):
-        ##Для чего-то были добавлены вызовы методов??
-        ##self.catchJMXFilesInPath()
-        ##self.getJMXFileAndMakeTree()
+        tmpResLst = []
         self._extrThreadGroupNode_()
-        self._restorOrigCntrlNm_(self._thrGrpLst_, 'ThGr')
-        #self._xTreeLocalRoot_ = self._xTreeRoot_
-        self._restorOrigCntrlNm_([(self._xTreeRoot_, 'Test_Plan')], 'TstPl')
-        try:
-            self._xmlTree_.write(self.outFileRestrdOrig)
-        except:
-            print('Ошибка при сохранении дерева: ' + str(sys.exc_info()[0]))
+        tmpResLst.append(self._restorOrigCntrlNm_(self._thrGrpLst_, 'ThGr'))
+        tmpResLst.append(self._restorOrigCntrlNm_([(self._xTreeRoot_, '--', '--', '--','Test_Plan')], 'TstPl'))
+        if tmpResLst.count(-1) != 0:
+            self._msgInfo_ = "Ошибка при восстановлении\nориг. назв. элем. дерева,\nнужно проверить дампы.\nСм. лог"
+        else:
+            try:
+                self._xmlTree_.write(self.outFileRestrdOrig)
+                self._msgInfo_ = "Файл с оригинальными(восстан.)\nназв. элементов дерева создан\n---" + self.outFileRestrdOrig + "---"
+            except:
+                self.logger.error("Error while saving XML-tree to a file: " + str(sys.exc_info()[0]))
+                self._msgInfo_ = "Ошибка записи коллекц.\nс оригинальными(восстан.)назв. элементов дерева"
         
 ## Вспомогательный метод для загрузки коллекций из файлов и восстановления
 
     def _restorOrigCntrlNm_(self, elmLst, fPstfx):
-        tmpElmNm = None 
-        flLst = os.listdir('jmProj_dumps/' + self._currDumpDir_)
+        tmpElmNm = None
+        flLst = ['pcklUnqNm_' + fPstfx + '_' + fl[4].replace(' ', '_') + '.txt' for fl in elmLst]
         xSet = self._pumpUpXPathToBuild_('all_nestNodes')
-        tmpVar = len(elmLst)
-        tmpLst = [fl for fl in flLst if fl.find('pcklUnqNm_' + fPstfx) != -1]
-        tmpLst.sort()
-        for flNm in tmpLst[len(tmpLst)-tmpVar:]:
+        flLst.sort()
+        for flNm in flLst:
             try:
                 with open('jmProj_dumps/'+ self._currDumpDir_ + '/' + flNm, 'rb') as fObj:
                     cllctn = pickle.load(fObj)
                 fObj.close()
             except:
-                print('Ошибка при загрузке коллекции из файла: ' + str(sys.exc_info()[0]))
+                self.logger.error("Error while loading collection from a file (" + flNm + "): " + str(sys.exc_info()[0]))
+                return -1
             if len(cllctn) == 0:
                 continue
             tmpUppElm = [k[0] for k in elmLst if k[0].find(xSet[2]).text == cllctn[0][0]].pop(0)
             self._xTreeLocalRoot_ = tmpUppElm
             self._appendXElmToCllctnItm_(cllctn)
             self._constrictBkpCl_()
-        del tmpVar
-        del tmpLst
+            self.logger.info("Collection succesfully restored from file " + flNm)
+        return 0
         
 ## Метод дополнения элементов загруженной из файла коллекции соответствующим элементом (объектом) дерева
 
@@ -580,6 +593,7 @@ class JMScriptItems:
         del tmpLinkLst
         self._optimDataDict_()
         self._constrictBkpCl_()
+        self._msgInfo_ = "Сгенерирована коллекция элементов для ThreadGroup\n---" + self._currThrGrNam_ + "---"
         self.logger.info("Working collection of elements accumulated")
 ###
             
@@ -1088,7 +1102,7 @@ class JMScriptItems:
         xAnyPropTxt_1 = './/*[property="'
         xAnyPropTxt_2 = '"]'
         xReltvPrntNode = '/../..'  
-        xReltvHostNode = '/..' 
+        xReltvHostNode = '/..'
         if funcName == 'ThreadGroups':
             return (xThrdGrpNode, xNodeName)
         elif funcName == 'prop_nodeName':
