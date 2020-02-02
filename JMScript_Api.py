@@ -449,7 +449,7 @@ class JMScriptUsrApi(tk.Frame):
             self.btSetValsToSlctn.config(state = tk.NORMAL)
             del tmpVal
         except IndexError:
-            self.crtChkLstItms(['Некорректное значение параметра'])
+            self.crtChkLstItms(['Некорректное значение сущности'])
         
     def prcdGetScrLstByNm(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
@@ -460,7 +460,7 @@ class JMScriptUsrApi(tk.Frame):
             self.btSetValsToSlctn.config(state = tk.DISABLED)
             del tmpVal
         except IndexError:
-            self.crtChkLstItms(['Некорректное значение параметра'])
+            self.crtChkLstItms(['Некорректное значение сущности'])
         
     def prcdGetScrFncByKeyVal(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
@@ -473,7 +473,7 @@ class JMScriptUsrApi(tk.Frame):
             del tmpVal
             del tmpTpl
         except IndexError:
-            self.crtChkLstItms(['Некорректное значение параметра'])
+            self.crtChkLstItms(['Некорректное значение сущности'])
         
     def prcdGetValByKSF(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
@@ -486,7 +486,7 @@ class JMScriptUsrApi(tk.Frame):
             del tmpVal
             del tmpTpl
         except IndexError:
-            self.crtChkLstItms(['Некорректное значение параметра'])
+            self.crtChkLstItms(['Некорректное значение сущности'])
         
     def testCmd(self):
         tmpChkLst = self.getSubWgts(self.dctItmsChkLst, tk._dummyHList)
@@ -578,13 +578,13 @@ class JMScriptUsrApi(tk.Frame):
         #self.jmscdObj._linksToUpdate_ = ()
         #self.btUpdateXMLTree.config(state = tk.DISABLED)
         self.txtWdgtDelete(True)
-        self.txtWdgtInsert("Текущее XML-дерево успешно обновлено")
+        self.txtWdgtInsert(self.jmscdObj._msgInfo_)
         
     def prcdWrtXmlTree(self):
         self.jmscdObj.outFileUniqueNames = self.vrUnqFNmValue.get()
         self.jmscdObj.wrtTreeToFile()
         self.txtWdgtDelete(True)
-        self.txtWdgtInsert("Коллекц. успешно запис. в файл\n---" + self.jmscdObj.outFileUniqueNames + "---")
+        self.txtWdgtInsert(self.jmscdObj._msgInfo_)
 
     def txtWdgtInsert(self, text, *tags):
         self._txtBegin_ = 0.0

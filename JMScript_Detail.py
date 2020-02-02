@@ -518,15 +518,15 @@ class JMScriptItems:
         return str(num)
         
 ## Метод сохранения xml-дерева в файл
-    
-    def xmlTreeToFile(self, flagRstre = False):
-        try:
-            if (flagRstre):
-                self.xmlTree.write(self.outFileUniqueNames)
-            else:
-                self.xmlTree.write(self.outFileRestrdOrig)
-        except:
-            print('Ошибка при сохранении дерева в файл: ' + + str(sys.exc_info()[0]))
+    ##не используется
+    ##def xmlTreeToFile(self, flagRstre = False):
+    ##    try:
+    ##        if (flagRstre):
+    ##            self.xmlTree.write(self.outFileUniqueNames)
+    ##        else:
+    ##            self.xmlTree.write(self.outFileRestrdOrig)
+    ##    except:
+    ##        print('Ошибка при сохранении дерева в файл: ' + + str(sys.exc_info()[0]))
 
             
 ### Здесь и далее до аналогичного комментария - попытка переписать метода под XML, названия попплывут для удобства
@@ -977,13 +977,16 @@ class JMScriptItems:
             del smplr
             self._linksToUpdate_ = tuple()
             self.logger.info("XML-tree successfully updated")
+            self._msgInfo_ = "Текущее XML-дерево успешно обновлено"
         else:
             self.logger.info("Attempt to store empty list of changes to XML-tree")
-            print("Изменений в словаре не было - нечего обновлять")
+            self._msgInfo_ = "Изменений в словаре не было - нечего обновлять"
         self._xTreeRoot_ = self._xmlTree_.getroot()
             
     def wrtTreeToFile(self):
         self._xmlTree_.write(self.outFileUniqueNames)
+        self._msgInfo_ = "Коллекц. успешно запис. в файл\n---" + self.outFileUniqueNames + "---"
+            
 
 ###Лишний код. Надо будет удалить
 
