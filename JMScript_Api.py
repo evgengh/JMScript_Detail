@@ -460,7 +460,7 @@ class JMScriptUsrApi(tk.Frame):
             self.btSetValsToSlctn.config(state = tk.DISABLED)
             del tmpVal
         except IndexError:
-            self.crtChkLstItms(['Некорректное значение параметра'])
+            self.crtChkLstItms(['Некорректное значение сущности'])
         
     def prcdGetScrFncByKeyVal(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
@@ -473,7 +473,7 @@ class JMScriptUsrApi(tk.Frame):
             del tmpVal
             del tmpTpl
         except IndexError:
-            self.crtChkLstItms(['Некорректное значение параметра'])
+            self.crtChkLstItms(['Некорректное значение сущности'])
         
     def prcdGetValByKSF(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
@@ -486,7 +486,7 @@ class JMScriptUsrApi(tk.Frame):
             del tmpVal
             del tmpTpl
         except IndexError:
-            self.crtChkLstItms(['Некорректное значение параметра'])
+            self.crtChkLstItms(['Некорректное значение сущности'])
         
     def testCmd(self):
         tmpChkLst = self.getSubWgts(self.dctItmsChkLst, tk._dummyHList)
