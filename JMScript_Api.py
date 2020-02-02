@@ -379,8 +379,8 @@ class JMScriptUsrApi(tk.Frame):
         #self.consFrame.pack(side="top")
         #self.contrBtPane.pack(side="top")
         
-    def testFrame(self):
-        self.jmscdObj.catchJMXFilesInPath()
+    ##def testFrame(self):
+        ##self.jmscdObj.catchJMXFilesInPath()
         ##print(self.jmscdObj.scrFlsLst)
         
     def getEntryText(self, entryNm):
@@ -389,14 +389,14 @@ class JMScriptUsrApi(tk.Frame):
     def prcdCatchJMXFiles(self):
         self.jmscdObj.setPATH = self.vrSPathValue.get()
         self.txtWdgtDelete(False)
-        try:
-            self.jmscdObj.catchJMXFilesInPath()
+        resJmxFls = self.jmscdObj.catchJMXFilesInPath()
+        if resJmxFls == -1:
+            self.txtWdgtInsert(self.jmscdObj._infoMsg_)
+        else:
             for fl in range(len(self.jmscdObj.scrFlsLst)):
                 self.tstOutText.tag_config("jmx_file_name"+str(fl))
                 self.tstOutText.tag_bind("jmx_file_name"+str(fl), sequence="<Double-Button-1>", func=lambda evt, arg=self.jmscdObj.scrFlsLst[fl-1]: self.prcdFillvrFname(evt, arg))
                 self.txtWdgtInsert(self.jmscdObj.scrFlsLst[fl-1] + '\n', "jmx_file_name"+str(fl))
-        except FileNotFoundError:
-            self.txtWdgtInsert('Директория не найдена')
 	    
     def prcdFillvrFname(self, event, chTag):
         self.vrFnameValue.delete(0, tk.END)
@@ -405,13 +405,10 @@ class JMScriptUsrApi(tk.Frame):
     def prcdGetJMXMkTree(self):
         self.jmscdObj.setFName = self.getEntryText(self.vrFnameValue)
         self.txtWdgtDelete(False)
-        try:
-            self.jmscdObj.getJMXFileAndMakeTree()
-            self.btTreeUnqNms.config(state = tk.NORMAL)
-            self.btUpdateXMLTree.config(state = tk.NORMAL)
-            self.txtWdgtInsert('Загружен файл ' + self.vrFnameValue.get())
-        except AttributeError:
-            self.txtWdgtInsert('Не найден *.jmx файл')
+        self.jmscdObj.getJMXFileAndMakeTree()
+        self.btTreeUnqNms.config(state = tk.NORMAL)
+        self.btUpdateXMLTree.config(state = tk.NORMAL)
+        self.txtWdgtInsert(self.jmscdObj._infoMsg_)
         
     def prcdTreeUnqNms(self):
         self.jmscdObj.outFileUniqueNames = self.getEntryText(self.vrUnqFNmValue)
@@ -425,14 +422,14 @@ class JMScriptUsrApi(tk.Frame):
         self.lsbxPileMCllct.activate(0)
         self.logger.info("List of ThreadGroup entries widget created")
         self.btTreeUnqNms.config(state = tk.DISABLED)
-        self.txtWdgtInsert('Нужно сгенерировать осн. коллекц.\nдля ThreadGroup')
+        self.txtWdgtInsert(self.jmscdObj._msgInfo_)
         
     def prcdRstrOrigNms(self):
         self.jmscdObj.outFileRestrdOrig = self.getEntryText(self.vrRestreFNmValue)
         self.jmscdObj.setFName = self.getEntryText(self.vrFnameValue)
         self.jmscdObj.restorOrigCntrlNm()
         self.txtWdgtDelete(True)
-        self.txtWdgtInsert("Файл с оригинальными(восстан.)\nназв. элементов дерева создан\n---" + self.jmscdObj.outFileRestrdOrig + "---")
+        self.txtWdgtInsert(self.jmscdObj._msgInfo_)
         
     def prcdPileMCllct(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
@@ -441,7 +438,7 @@ class JMScriptUsrApi(tk.Frame):
         self.logger.info("ThreadGroup %s chosen", self.jmscdObj._currThrGrNam_)
         self.jmscdObj.extrHTTPDataNamesAndLinks()
         self.txtWdgtDelete(False)
-        self.txtWdgtInsert("Сгенерирована коллекция эелементов для ThreadGroup\n---" + self.jmscdObj._currThrGrNam_ + "---")
+        self.txtWdgtInsert(self.jmscdObj._msgInfo_)
         
     def prcdGetDataDictItem(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
@@ -452,7 +449,7 @@ class JMScriptUsrApi(tk.Frame):
             self.btSetValsToSlctn.config(state = tk.NORMAL)
             del tmpVal
         except IndexError:
-            self.crtChkLstItms(['Некорректное значение параметра'])
+            self.crtChkLstItms(['Некорректное значение сущности'])
         
     def prcdGetScrLstByNm(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
@@ -527,8 +524,9 @@ class JMScriptUsrApi(tk.Frame):
         tmpChkLst = [lstItm[1] for lstItm in self._selctdItemsLst_ if tmpLst.count(lstItm[0]) != 0]
         [self.jmscdObj.setValueByKeyScrFunc(newVal,(self.jmscdObj._selctdKey_,cntrl[0],prm[0])) for cntrl in tmpChkLst for prm in cntrl[1]]
         self._selctdItemsLst_.clear()
+        self.jmscdObj._msgInfo_ = "Измен. добавлены в дерево,\nпосле обнов. будут видны\nпри работе с парам."
         self.txtWdgtDelete(True)
-        self.txtWdgtInsert("Измен. добавлены в дерево,\nпосле обнов. будут видны\nпри работе с парам.")
+        self.txtWdgtInsert(self.jmscdObj._msgInfo_)
         del tmpChkLst
         del tmpLst
         
@@ -580,13 +578,13 @@ class JMScriptUsrApi(tk.Frame):
         #self.jmscdObj._linksToUpdate_ = ()
         #self.btUpdateXMLTree.config(state = tk.DISABLED)
         self.txtWdgtDelete(True)
-        self.txtWdgtInsert("Текущее XML-дерево успешно обновлено")
+        self.txtWdgtInsert(self.jmscdObj._msgInfo_)
         
     def prcdWrtXmlTree(self):
         self.jmscdObj.outFileUniqueNames = self.vrUnqFNmValue.get()
         self.jmscdObj.wrtTreeToFile()
         self.txtWdgtDelete(True)
-        self.txtWdgtInsert("Коллекц. успешно запис. в файл\n---" + self.jmscdObj.outFileUniqueNames + "---")
+        self.txtWdgtInsert(self.jmscdObj._msgInfo_)
 
     def txtWdgtInsert(self, text, *tags):
         self._txtBegin_ = 0.0
