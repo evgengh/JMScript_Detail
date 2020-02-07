@@ -231,13 +231,7 @@ class JMScriptItems:
             self._currBkpCntrLst_ = self._thrGrpLst_.copy()
             self._currDumpFName_ = 'pcklUnqNm_TstPl_' + self._xTreeRoot_.find(xSet[1]).text.replace(' ', '_') 
             self._dumpOrigCntrlNm_()
-            try:
-                self._xmlTree_.write(self.outFileUniqueNames)
-                self.logger.info("File %s created, collection with unique names loaded in the xml-tree", self.outFileUniqueNames)
-                self._msgInfo_ = "Нужно сгенерировать осн. коллекц.\nдля ThreadGroup"
-            except:
-                self.logger.error('Error while saving XML-tree to file: ' + str(sys.exc_info()[0]))
-                self._msgInfo_ = "Ошибка при сохранении XML-дерева"
+            self.xmlTreeToFile(True, "Нужно сгенерировать осн. коллекц.\nдля ThreadGroup")
         
 ## Метод извлечения Нодов для всех элементов ThreadGroup
 
@@ -439,12 +433,7 @@ class JMScriptItems:
         if tmpResLst.count(-1) != 0:
             self._msgInfo_ = "Ошибка при восстановлении\nориг. назв. элем. дерева,\nнужно проверить дампы.\nСм. лог"
         else:
-            try:
-                self._xmlTree_.write(self.outFileRestrdOrig)
-                self._msgInfo_ = "Файл с оригинальными(восстан.)\nназв. элементов дерева создан\n---" + self.outFileRestrdOrig + "---"
-            except:
-                self.logger.error("Error while saving XML-tree to a file: " + str(sys.exc_info()[0]))
-                self._msgInfo_ = "Ошибка записи коллекц.\nс оригинальными(восстан.)назв. элементов дерева"
+            self.xmlTreeToFile(False, "Файл с оригинальными(восстан.)\nназв. элементов дерева создан\n---" + self.outFileRestrdOrig + "---")
         
 ## Вспомогательный метод для загрузки коллекций из файлов и восстановления
 
@@ -516,17 +505,22 @@ class JMScriptItems:
         if len(str(num)) == 1:
             return '0' + str(num)
         return str(num)
-        
+
+		
 ## Метод сохранения xml-дерева в файл
-    ##не используется
-    ##def xmlTreeToFile(self, flagRstre = False):
-    ##    try:
-    ##        if (flagRstre):
-    ##            self.xmlTree.write(self.outFileUniqueNames)
-    ##        else:
-    ##            self.xmlTree.write(self.outFileRestrdOrig)
-    ##    except:
-    ##        print('Ошибка при сохранении дерева в файл: ' + + str(sys.exc_info()[0]))
+
+    def xmlTreeToFile(self, flagUnq = True, info_msg = 'Коллекция успешно записана в файл'):
+        try:
+            if (flagUnq):
+                self._xmlTree_.write(self.outFileUniqueNames)
+                self.logger.info("File with unified xml-tree %s created", self.outFileUniqueNames)
+            else:
+                self._xmlTree_.write(self.outFileRestrdOrig)
+                self.logger.info("File with original (restored) xml-tree %s created", self.outFileRestrdOrig)
+            self._msgInfo_ = info_msg
+        except Exception as e:
+            self.logger.error('Error while saving XML-tree to file: ' + str(e) + '\n' + str(sys.exc_info()[0]))
+            self._msgInfo_ = "Ошибка при сохранении XML-дерева"
 
             
 ### Здесь и далее до аналогичного комментария - попытка переписать метода под XML, названия попплывут для удобства
@@ -984,8 +978,7 @@ class JMScriptItems:
         self._xTreeRoot_ = self._xmlTree_.getroot()
             
     def wrtTreeToFile(self):
-        self._xmlTree_.write(self.outFileUniqueNames)
-        self._msgInfo_ = "Коллекц. успешно запис. в файл\n---" + self.outFileUniqueNames + "---"
+        self.xmlTreeToFile(True, "Коллекц. успешно запис. в файл\n---" + self.outFileUniqueNames + "---")
             
 
 ###Лишний код. Надо будет удалить
