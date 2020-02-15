@@ -442,6 +442,9 @@ class JMScriptUsrApi(tk.Frame):
         
     def prcdGetDataDictItem(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
+        if (self.ifChkLstRadio()):
+            self.vlGetDataDictItem.delete(0, tk.END)
+            self.vlGetDataDictItem.insert(0, self.getChckLstSel().pop(0))
         try:
             tmpVal = self.jmscdObj.getDataDictItem(self.vlGetDataDictItem.get())
             self.jmscdObj._selctdKey_ = self.vlGetDataDictItem.get()
@@ -495,20 +498,24 @@ class JMScriptUsrApi(tk.Frame):
     def testCmd(self):
         tmpChkLst = self.getSubWgts(self.dctItmsChkLst, tk._dummyHList)
         tmpVar = 'on'
+        self.dctItmsChkLst.setstatus(tmpChkLst.info_children()[0], mode = 'on')
         if self.dctItmsVar.get() == False:
             tmpVar = 'off'
         for i in tmpChkLst.info_children():
             self.dctItmsChkLst.setstatus(i, mode = tmpVar)
+        if (int(self.dctItmsChkLst.cget("radio")) != 0) and (tmpVar == 'on'):
+            self.dctItmsChkLst.setstatus(tmpChkLst.info_children()[1], mode = 'on')
+        del tmpVar
 
     def prcdfGetListKeys(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
         self.tstOutText.delete(0.0, tk.END)
         if self.varRBtLstKeys.get() == 1:
             self.jmscdObj._selctdKey_ = 'Все парам.'
-            self.crtChkLstItms(self.jmscdObj._curList_)
+            self.crtChkLstItms(self.jmscdObj._curList_, ifRadio = True)
         elif self.varRBtLstKeys.get() == 2:
             self.jmscdObj._selctdKey_ = 'Все ссылки'
-            self.crtChkLstItms(self.jmscdObj._curLinkList_)
+            self.crtChkLstItms(self.jmscdObj._curLinkList_, ifRadio = True)
         else:
             raise Exception
             
@@ -524,15 +531,13 @@ class JMScriptUsrApi(tk.Frame):
              newVal = ''
         else:
             newVal = self.entSetValsToSlctn.get()
-        tmpLst = self.dctItmsChkLst.getselection()
-        tmpChkLst = [lstItm[1] for lstItm in self._selctdItemsLst_ if tmpLst.count(lstItm[0]) != 0]
+        tmpChkLst = self.getChckLstSel()
         [self.jmscdObj.setValueByKeyScrFunc(newVal,(self.jmscdObj._selctdKey_,cntrl[0],prm[0])) for cntrl in tmpChkLst for prm in cntrl[1]]
         self._selctdItemsLst_.clear()
         self.jmscdObj._msgInfo_ = "Измен. добавлены в дерево,\nпосле обнов. будут видны\nпри работе с парам."
         self.txtWdgtDelete(True)
         self.txtWdgtInsert(self.jmscdObj._msgInfo_)
         del tmpChkLst
-        del tmpLst
         
     def getSubWgts(self, widget, wgtClass):
         tmpLst = widget.subwidgets_all()
@@ -541,20 +546,20 @@ class JMScriptUsrApi(tk.Frame):
                 return wdgt
         return None
         
-    def crtChkLstItms(self, itmCllctn):
+    def crtChkLstItms(self, itmCllctn, ifRadio = False):
         self.txtWdgtDelete(False)
         self._selctdItemsLst_.clear()
         [wdg.destroy() for wdg in self.frOutRslts.subwidgets_all() if (isinstance(wdg, tk.CheckList))]
             #self.dctItmsChkLst.destroy()
         
         ## Список чекбоксов для вывода в текстовом окне
-        self.dctItmsChkLst = tk.CheckList(self.frOutRslts)
+        self.dctItmsChkLst = tk.CheckList(self.frOutRslts, radio = ifRadio)
         ##
         self.jmscdObj.setEntity(self.entStrVar.get())
         indx = 1.0
         ##
         self.dctItmsVar = tk.BooleanVar()
-        self.dctItmsVar.set(True)
+        self.dctItmsVar.set(not ifRadio)
         tmpChkLst = self.getSubWgts(self.dctItmsChkLst, tk._dummyHList)
         tmpChkLst.config(header = True, width = 61, borderwidth=1)
         tmpChkLst.header_create(col = 0, itemtype = tk.TEXT, text = self.jmscdObj._selctdKey_)
@@ -567,14 +572,16 @@ class JMScriptUsrApi(tk.Frame):
                 indx = '%d.%d' % (entrCnt, 0)
                 curEntr = '%s_%s' % ('dctItm', str(entrCnt))
                 entrTxt = (itmCllctn[lnNum][0] + ': ' + str(entr)) if isinstance(entr, tuple) else itmCllctn[lnNum]
-                entrVal = (itmCllctn[lnNum][0], ((entr),))
+                entrVal = (itmCllctn[lnNum][0], ((entr),)) if isinstance(entr, tuple) else itmCllctn[lnNum]
                 self._selctdItemsLst_.append((curEntr, entrVal))
                 exec('tmpChkLst.add(eval("curEntr"), itemtype = tk.IMAGETEXT, data = curEntr, text = entrTxt)')
         self.tstOutText.window_create(tk.END, window = self.dctItmsChkLst)
+        tmpIfMode = 'off' if (ifRadio) else 'on'
         for i in tmpChkLst.info_children():
-            self.dctItmsChkLst.setstatus(i, mode='on')
+            self.dctItmsChkLst.setstatus(i, mode=tmpIfMode)
         self.tstOutText.config(state = tk.DISABLED)
         del tmpChkLst
+        del tmpIfMode
         self.logger.info("Checklist of dictionary entries created in Text Widget")
         
     def prcdUpdtXMLTree(self):
@@ -604,3 +611,15 @@ class JMScriptUsrApi(tk.Frame):
         self.tstOutText.config(state = tk.NORMAL)
         self.tstOutText.delete(self._txtBegin_, self._txtEnd_)
         self.tstOutText.config(state = tk.DISABLED)
+
+    def ifChkLstRadio(self):
+        tmpChkLst = self.getSubWgts(self.dctItmsChkLst, tk._dummyHList)
+        if (int(self.dctItmsChkLst.cget("radio")) != 0) and (self.dctItmsVar.get()):
+            print("Debug!")
+            return True
+        else:
+            return False
+
+    def getChckLstSel(self):
+        return [lstItm[1] for lstItm in self._selctdItemsLst_ if self.dctItmsChkLst.getselection().count(lstItm[0]) != 0]
+        pass
