@@ -48,6 +48,9 @@ class TkinterRuntimeExcept(AppError):
     def __init__(self, message):
         self.message = message
 
+class CollectKeyValError(AppError):
+    pass
+
 		
 class ExceptHandler:
 

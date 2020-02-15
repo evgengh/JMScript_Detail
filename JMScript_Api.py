@@ -467,6 +467,8 @@ class JMScriptUsrApi(tk.Frame):
         try:
             tmpTpl = (self.vlGetScrFncByKeyVal.get(), self.vrGetScrFncByKeyVal.get())
             tmpVal = self.jmscdObj.getScrFuncByKeyValue(tmpTpl, funcFlag = self.chkKeyVlVar.get())
+            if len(tmpVal) == 0:
+                raise excpt.CollectKeyValError
             self.jmscdObj._selctdKey_ = self.vlGetScrFncByKeyVal.get()
             self.crtChkLstItms(tmpVal)
             self.btSetValsToSlctn.config(state = tk.DISABLED)
@@ -474,6 +476,8 @@ class JMScriptUsrApi(tk.Frame):
             del tmpTpl
         except IndexError:
             self.crtChkLstItms(['Некорректное значение сущности'])
+        except excpt.CollectKeyValError:
+            self.crtChkLstItms(['Ничего не найдено\nс таким знач. парам.'])
         
     def prcdGetValByKSF(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
@@ -486,7 +490,7 @@ class JMScriptUsrApi(tk.Frame):
             del tmpVal
             del tmpTpl
         except IndexError:
-            self.crtChkLstItms(['Некорректное значение сущности'])
+            self.crtChkLstItms(['Некорректное значение сущности,\nлибо в коллекции не найдено совпадений\nкл.-кнтр.-смпл.'])
         
     def testCmd(self):
         tmpChkLst = self.getSubWgts(self.dctItmsChkLst, tk._dummyHList)
