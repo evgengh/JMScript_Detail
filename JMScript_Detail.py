@@ -254,12 +254,11 @@ class JMScriptItems:
         
 ## Метод проверки, что класс Нода относится к классу Controller
         
-    def _checkIfxElmIsCntrll_(self, node):
-        xSet = self._pumpUpXPathToBuild_('prop_nodeName')
-        prop = node.find(xSet[0])
-        tmpProp = prop.text.__str__()
-        return bool(tmpProp.find('Controller')!=-1)
-        #return bool(prop.text.find('Controller')!=-1)
+    ##def _checkIfxElmIsCntrll_(self, node):
+    ##    xSet = self._pumpUpXPathToBuild_('prop_nodeName')
+    ##    prop = node.find(xSet[0])
+    ##    tmpProp = prop.text.__str__()
+    ##    return bool(tmpProp.find('Controller')!=-1)
         
 ## Метод, который будет использоваться вместо _checkIfxElmIsCntrll_
 ## достаточно вызова с параметром имени класса для проверки
@@ -275,17 +274,40 @@ class JMScriptItems:
         tmpLst = []
         xSet = self._pumpUpXPathToBuild_('all_nestNodes')
         xSet1 = self._pumpUpXPathToBuild_('prop_nodeName')
-        tmpLst = [[itm for itm in thgr[0].findall(xSet[0]) if (self._checkIfxElmIsCntrll_(itm))] for thgr in self._thrGrpLst_]
+        tmpLst = [[itm for itm in thgr[0].findall(xSet[0]) if (self._checkElmTypeClls_(itm, "Controller"))] for thgr in self._thrGrpLst_]
         for ctLst in tmpLst:
             self._currBkpCntrLst_.clear()
+            ctLctCpy = ctLst.copy()
             self._xTreeLocalRoot_ = self._thrGrpLst_[tmpLst.index(ctLst)][0]
             self._xElmNestedMapp_(ctLst, 'org.apache.jmeter.threads.ThreadGroup')
             self._xElmUniqueName_(ctLst, 'org.apache.jmeter.threads.ThreadGroup')
             self._currDumpFName_ = 'pcklUnqNm_ThGr_' + self._xTreeLocalRoot_.find(xSet1[0]).text.replace(" ", "_")
-            self.logger.info("Nodes from ThreadGroup %s exctracted", self._xTreeLocalRoot_.find(xSet1[0]).text)
+            ##self.logger.info("Nodes from ThreadGroup %s exctracted", self._xTreeLocalRoot_.find(xSet1[0]).text)
+            self._dumpOrigCntrlNm_()
+            self._extrSmplrNode_(ctLctCpy, self._xTreeLocalRoot_.find(xSet1[0]).text.replace(" ", "_"))
+        del tmpLst
+
+## Метод извлечения Нодов для всех элементов класса Sampler для каждого элемента Controller
+
+    def _extrSmplrNode_(self, cntrlLst, thgrName):
+        tmpLst = []
+        xSet = self._pumpUpXPathToBuild_('all_nestNodes')
+        xSet1 = self._pumpUpXPathToBuild_('prop_nodeName')
+        xSet2 = self._pumpUpXPathToBuild_('nodeProps')
+        print(cntrlLst)
+        tmpLst = [[itm for itm in cntrl.findall(xSet[0]) if (self._checkElmTypeClls_(itm, "HTTPSampler"))] for cntrl in cntrlLst]
+        for smLst in tmpLst:
+            print("Debug!")
+            self._currBkpCntrLst_.clear()
+            self._xTreeLocalRoot_ = cntrlLst[tmpLst.index(smLst)]
+            cntrlClass = self._xTreeLocalRoot_.find(xSet2[0]).text
+            ##self._xElmNestedMapp_(ctLst, 'org.apache.jmeter.threads.ThreadGroup')
+            self._xElmUniqueName_(smLst, cntrlClass)
+            self._currDumpFName_ = 'pcklUnqNm_ThGr_' + thgrName + '_Cntrl_' + self._xTreeLocalRoot_.find(xSet1[0]).text.replace(" ", "_")
+            self.logger.info("Nodes from Controller %s exctracted", self._xTreeLocalRoot_.find(xSet1[0]).text)
             self._dumpOrigCntrlNm_()	
         del tmpLst
-    
+
 ## Метод создание префиксов для структуры составных вложенных элементов (для идентификации в коллекции)
         
     def _xElmNestedMapp_(self, cntrLst, parntNdClass):
@@ -297,7 +319,7 @@ class JMScriptItems:
             tmpLst = [j for j in nd.findall(xSet[0]) if cntrLst[cntrLst.index(nd):].count(j)!=0]
             if len(tmpLst) != 0:
                 for itm in tmpLst:
-                    if (self._checkIfxElmIsCntrll_(itm)):
+                    if (self._checkElmTypeClls_(itm, "Controller")):
                         prop = itm.find(xSet[2])
                         tmpVar = prop.text
                         tmpVarNew = '_' + prop.text
