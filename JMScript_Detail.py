@@ -210,6 +210,9 @@ class JMScriptItems:
         self.scrFlsLst = os.listdir('.')
         tmpLst = [f for f in self.scrFlsLst if f[len(f)-4:].find(".jmx")!=-1]
         self.scrFlsLst = tmpLst
+        if len(self.scrFlsLst) == 0:
+            self._infoMsg_ = "Тут jmx-файлов не обнаружено"
+            return -1
         del tmpLst
         return 0
         

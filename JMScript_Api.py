@@ -248,7 +248,7 @@ class JMScriptUsrApi(tk.Frame):
         
         ##Опция выбора сущности на данный момент выключена
         ####self.lstWrkEnts.pack(side = tk.TOP)
-        self.tstOutText = tk.Text(self._frOutRslts_, state = tk.DISABLED, bg='#FFEFD5', width=64)
+        self.tstOutText = tk.Text(self._frOutRslts_, state = tk.DISABLED, bg='#FFEFD5')#, width=64)
         self.tstOutText.pack(side = tk.TOP)
         self.txtWdgtDelete(False)
         self.txtWdgtInsert(self._initText_)
@@ -583,7 +583,9 @@ class JMScriptUsrApi(tk.Frame):
         self.dctItmsVar = tk.BooleanVar()
         self.dctItmsVar.set(not ifRadio)
         tmpChkLst = self.getSubWgts(self.dctItmsChkLst, tk._dummyHList)
-        tmpChkLst.config(header = True, width = 61, borderwidth=1)
+        widthFrInSymb = int(self.tstOutText.winfo_width() / 7 - 3)
+        heightTstInSymb = int(round(self.tstOutText.cget("height") / 2, 0))
+        tmpChkLst.config(header = True, width = widthFrInSymb, height = heightTstInSymb, borderwidth=1)
         tmpChkLst.header_create(col = 0, itemtype = tk.TEXT, text = self.jmscdObj._selctdKey_)
         self.chkBtnTst = tk.Checkbutton(tmpChkLst, command = self.testCmd, variable = self.dctItmsVar)
         self.chkBtnTst.config(text = "Авто выбор/Все знач.")
@@ -598,7 +600,7 @@ class JMScriptUsrApi(tk.Frame):
                 entrVal = (itmCllctn[lnNum][0], ((entr),)) if isinstance(itmCllctn[lnNum], tuple) else itmCllctn[lnNum]
                 self._selctdItemsLst_.append((curEntr, entrVal))
                 exec('tmpChkLst.add(eval("curEntr"), itemtype = tk.IMAGETEXT, data = curEntr, text = entrTxt)')
-        self.tstOutText.window_create(tk.END, window = self.dctItmsChkLst)
+        self.tstOutText.window_create(tk.END, window = self.dctItmsChkLst, align = tk.TOP)
         tmpIfMode = 'off' if (ifRadio) else 'on'
         for i in tmpChkLst.info_children():
             self.dctItmsChkLst.setstatus(i, mode=tmpIfMode)
