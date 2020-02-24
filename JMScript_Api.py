@@ -583,7 +583,12 @@ class JMScriptUsrApi(tk.Frame):
         self.dctItmsVar = tk.BooleanVar()
         self.dctItmsVar.set(not ifRadio)
         tmpChkLst = self.getSubWgts(self.dctItmsChkLst, tk._dummyHList)
-        widthFrInSymb = int(self.tstOutText.winfo_width() / 7 - 3)
+        if (self.jmscdObj.platf.startswith('linux')):
+            widthFrInSymb = int(self.tstOutText.winfo_width() / 7 - 3)
+        elif (self.jmscdObj.platf.startswith('win')):
+            widthFrInSymb = int(self.tstOutText.winfo_width() / 6 - 4)
+        else:
+            widthFrInSymb = int(self.tstOutText.winfo_width() / 7 - 3)
         heightTstInSymb = int(round(self.tstOutText.cget("height") / 2, 0))
         tmpChkLst.config(header = True, width = widthFrInSymb, height = heightTstInSymb, borderwidth=1)
         tmpChkLst.header_create(col = 0, itemtype = tk.TEXT, text = self.jmscdObj._selctdKey_)

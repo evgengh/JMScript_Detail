@@ -118,6 +118,7 @@ class JMScriptItems:
         self.logger.info("JMScript_Detail object created")
 
         self._infoMsg_ = 'JMScript_Detail (c)'              # Текущее сообщение для вывода пользователю
+        self.platf = sys.platform                           # Платформа
         
         print("\n\n* * * * JMScript_Details (ver. 1.3) * * * *")
         print("\n  * * * Класс для сбора и классификации данных сэмплеров JMeter * * *")
