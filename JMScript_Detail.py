@@ -298,8 +298,9 @@ class JMScriptItems:
         xSet = self._pumpUpXPathToBuild_('all_nestNodes')
         xSet1 = self._pumpUpXPathToBuild_('prop_nodeName')
         xSet2 = self._pumpUpXPathToBuild_('nodeProps')
+        xSet3 = self._pumpUpXPathToBuild_('direct_nestNodes')
         print(cntrlLst)
-        tmpLst = [[itm for itm in cntrl.findall(xSet[0]) if (self._checkElmTypeClls_(itm, "HTTPSampler"))] for cntrl in cntrlLst]
+        tmpLst = [[itm for itm in cntrl.findall(xSet3[0]) if (self._checkElmTypeClls_(itm, "HTTPSampler"))] for cntrl in cntrlLst]
         for smLst in tmpLst:
             print("Debug!")
             self._currBkpCntrLst_.clear()
@@ -1115,6 +1116,7 @@ class JMScriptItems:
         xNodeClass = './/testelement/*[@name="TestElement.test_class"]'
         xNodePath = './/testelement/*[@name="HTTPSampler.path"]'
         xNestNodes = './/node'
+        xDirectNestNodes = './node'
         xTstElm = './/testelement'
         xCollctn = './/collection'
         xChldNodes = './*'
@@ -1131,6 +1133,8 @@ class JMScriptItems:
             return (xNodeName,)
         elif funcName == 'all_nestNodes':
             return (xNestNodes, xNodeClass, xNodeName)
+        elif funcName == 'direct_nestNodes':
+            return (xDirectNestNodes, xNodeClass, xNodeName)
         elif funcName == 'nodeProps':
             return (xNodeClass, xNodeName)
         elif funcName == 'parntNode':
