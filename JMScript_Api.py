@@ -480,6 +480,7 @@ class JMScriptUsrApi(tk.Frame):
     def prcdTreeUnqNms(self):
         self.jmscdObj.outFileUniqueNames = self.getEntryText(self.vrUnqFNmValue)
         self.txtWdgtDelete(False)
+        self.jmscdObj._smplThruVar_ = self._varRbSmplThruNum_.get()
         self.jmscdObj.xmlTreeStructToUnqNams()
         ##
         self.lsbxPileMCllct.delete(0, tk.END)

@@ -106,7 +106,8 @@ class JMScriptItems:
         self.refWbLinkDict = {}                             # Словарь ссылок в строке Referer функции web_url
         self._linksToUpdate_ = tuple()                      # Вспомогательный картеж для хранения изменений перед обновлением файлов
         self._selctdKey_ = None                             # Текущий выбраный ключ
-        self._dctSmplThruTestPlan_ = {}                     # Словарь оригинальных названий при режиме сквозной нумерации в ТестПлане
+        self._dctSmplThru_ = {}                             # Словарь оригинальных названий при режиме сквозной нумерации
+        self._smplThruVar_ = "Controller"                   # Переменная сквозной нумерации
 
         #self._checkDmpDirExst_()                           # Проверка, что общий каталог для дампов существует
         self.excptHandl = excpt.ExceptHandler()             # Создание объекта класса ExceptHandler
@@ -233,7 +234,7 @@ class JMScriptItems:
             self._sessDmpDir_()
             self._extrThreadGroupNode_()
             self._extrCntrllNode_()
-            self._dctSmplThruTestPlan_ = {}
+            self._dctSmplThru_ = {}
             self._currBkpCntrLst_ = self._thrGrpLst_.copy()
             self._currDumpFName_ = 'pcklUnqNm_TstPl_' + self._xTreeRoot_.find(xSet[1]).text.replace(' ', '_') 
             self._dumpOrigCntrlNm_()
@@ -250,7 +251,6 @@ class JMScriptItems:
         self._xElmUniqueName_(tmpNodeLst, 'org.apache.jmeter.testelement.TestPlan')
         if len(self._currBkpCntrLst_) == 0:
             self._thrGrpLst_ = [tuple([thgr, '--', '--', '--', thgr.find(xSet[1]).text]) for thgr in tmpThGrLst]
-            #print(self._thrGrpLst_)
         else:
             self._thrGrpLst_ = self._currBkpCntrLst_.copy()
             self._thrGrpLst_.reverse()
@@ -276,47 +276,72 @@ class JMScriptItems:
 
 ## Метод извлечения Нодов для всех элементов класса Controller для каждого элемента ThreadGroup
 
-    def _extrCntrllNode_(self):
-        tmpLst = []
-        xSet = self._pumpUpXPathToBuild_('all_nestNodes')
-        xSet1 = self._pumpUpXPathToBuild_('prop_nodeName')
-        tmpLst = [[itm for itm in thgr[0].findall(xSet[0]) if (self._checkElmTypeClls_(itm, "Controller"))] for thgr in self._thrGrpLst_]
-        revCntrLst = [itm for itm in self._xTreeRoot_.findall(xSet[0]) if (self._checkElmTypeClls_(itm, "HTTPSampler"))]
-        #print(revCntrLst)
-        self._xTreeLocalRoot_ = self._xTreeRoot_
-        self._xElmUniqueName_(revCntrLst, "org.apache.jmeter.testelement.TestPlan", thruTestPlan = True)
-        for ctLst in tmpLst:
-            #self._currBkpCntrLst_.clear()
-            ctLctCpy = ctLst.copy()
-            self._xTreeLocalRoot_ = self._thrGrpLst_[tmpLst.index(ctLst)][0]
-            self._xElmNestedMapp_(ctLst, 'org.apache.jmeter.threads.ThreadGroup')
-            self._xElmUniqueName_(ctLst, 'org.apache.jmeter.threads.ThreadGroup')
-            self._currDumpFName_ = 'pcklUnqNm_ThGr_' + self._xTreeLocalRoot_.find(xSet1[0]).text.replace(" ", "_")
-            self.logger.info("Nodes from ThreadGroup %s exctracted", self._xTreeLocalRoot_.find(xSet1[0]).text)
-            self._dumpOrigCntrlNm_()
-            self._extrSmplrNode_(ctLctCpy, self._xTreeLocalRoot_.find(xSet1[0]).text.replace(" ", "_"))
-        del tmpLst
-        self._currBkpCntrLst_.clear()
-
-## Метод извлечения Нодов для всех элементов класса Sampler для каждого элемента Controller
-
-    def _extrSmplrNode_(self, cntrlLst, thgrName):
+    def _extrCntrllNode_(self, cntrlLst = None, thgrName = None, nodeClass = "Controller"):
         tmpLst = []
         xSet = self._pumpUpXPathToBuild_('all_nestNodes')
         xSet1 = self._pumpUpXPathToBuild_('prop_nodeName')
         xSet2 = self._pumpUpXPathToBuild_('nodeProps')
         xSet3 = self._pumpUpXPathToBuild_('direct_nestNodes')
-        tmpLst = [[itm for itm in cntrl.findall(xSet3[0]) if (self._checkElmTypeClls_(itm, "HTTPSampler"))] for cntrl in cntrlLst]
-        for smLst in tmpLst:
+        if nodeClass == "Controller":
+            tmpLst = [[itm for itm in thgr[0].findall(xSet[0]) if (self._checkElmTypeClls_(itm, "Controller"))] for thgr in self._thrGrpLst_]
+            if self._smplThruVar_ == "TestPlan":
+                smplrLst = [itm for itm in self._xTreeRoot_.findall(xSet[0]) if (self._checkElmTypeClls_(itm, "HTTPSampler"))]
+                self._xTreeLocalRoot_ = self._xTreeRoot_
+                self._xElmUniqueName_(smplrLst, "org.apache.jmeter.testelement.TestPlan", smplrsThru = True)
+                del smplrLst
+        elif nodeClass == "Sampler":
+            tmpLst = [[itm for itm in cntrl.findall(xSet3[0]) if (self._checkElmTypeClls_(itm, "HTTPSampler"))] for cntrl in cntrlLst]
+        else:
+            raise Exception
+        for itmLst in tmpLst:
             self._currBkpCntrLst_.clear()
-            self._xTreeLocalRoot_ = cntrlLst[tmpLst.index(smLst)]
-            cntrlClass = self._xTreeLocalRoot_.find(xSet2[0]).text
-            ##self._xElmNestedMapp_(ctLst, 'org.apache.jmeter.threads.ThreadGroup')
-            self._xElmUniqueName_(smLst, cntrlClass, thruTestPlan = True)
-            self._currDumpFName_ = 'pcklUnqNm_ThGr_' + thgrName + '_Cntrl_' + self._xTreeLocalRoot_.find(xSet1[0]).text.replace(" ", "_")
-            self.logger.info("Nodes from Controller %s exctracted", self._xTreeLocalRoot_.find(xSet1[0]).text)
-            self._dumpOrigCntrlNm_()	
+            if nodeClass == "Controller":
+                itmLstCpy = itmLst.copy()
+                self._xTreeLocalRoot_ = self._thrGrpLst_[tmpLst.index(itmLst)][0]
+                self._xElmNestedMapp_(itmLst, 'org.apache.jmeter.threads.ThreadGroup')
+                self._xElmUniqueName_(itmLst, 'org.apache.jmeter.threads.ThreadGroup')
+                self._currDumpFName_ = 'pcklUnqNm_ThGr_' + self._xTreeLocalRoot_.find(xSet1[0]).text.replace(" ", "_")
+                self.logger.info("Nodes from ThreadGroup %s exctracted", self._xTreeLocalRoot_.find(xSet1[0]).text)
+                if self._smplThruVar_ == "ThreadGroup":
+                    smplrLst = [itm for itm in self._xTreeLocalRoot_.findall(xSet[0]) if (self._checkElmTypeClls_(itm, "HTTPSampler"))]
+                    self._xElmUniqueName_(smplrLst, "org.apache.jmeter.threads.ThreadGroup", smplrsThru = True)
+                    del smplrLst
+                self._dumpOrigCntrlNm_()
+                self._extrCntrllNode_(itmLstCpy, self._xTreeLocalRoot_.find(xSet1[0]).text.replace(" ", "_"), nodeClass = "Sampler")
+            elif nodeClass == "Sampler":
+                self._xTreeLocalRoot_ = cntrlLst[tmpLst.index(itmLst)]
+                cntrlClass = self._xTreeLocalRoot_.find(xSet2[0]).text
+                tmpThru = (self._smplThruVar_ in ("ThreadGroup", "TestPlan"))
+                self._xElmUniqueName_(itmLst, cntrlClass, smplrsThru = tmpThru)
+                self._currDumpFName_ = 'pcklUnqNm_ThGr_' + thgrName + '_Cntrl_' + self._xTreeLocalRoot_.find(xSet1[0]).text.replace(" ", "_")
+                self.logger.info("Nodes from Controller %s exctracted", self._xTreeLocalRoot_.find(xSet1[0]).text)
+                self._dumpOrigCntrlNm_()
+                del tmpThru
+            else:
+                raise Exception
+            #print(self._currBkpCntrLst_)
         del tmpLst
+        self._currBkpCntrLst_.clear()
+
+## Метод извлечения Нодов для всех элементов класса Sampler для каждого элемента Controller
+
+    ##def _extrSmplrNode_(self, cntrlLst, thgrName):
+    ##    tmpLst = []
+    ##    xSet = self._pumpUpXPathToBuild_('all_nestNodes')
+    ##    xSet1 = self._pumpUpXPathToBuild_('prop_nodeName')
+    ##    xSet2 = self._pumpUpXPathToBuild_('nodeProps')
+    ##    xSet3 = self._pumpUpXPathToBuild_('direct_nestNodes')
+    ##    tmpLst = [[itm for itm in cntrl.findall(xSet3[0]) if (self._checkElmTypeClls_(itm, "HTTPSampler"))] for cntrl in cntrlLst]
+    ##    for smLst in tmpLst:
+    ##        self._currBkpCntrLst_.clear()
+    ##        self._xTreeLocalRoot_ = cntrlLst[tmpLst.index(smLst)]
+    ##        cntrlClass = self._xTreeLocalRoot_.find(xSet2[0]).text
+            ##self._xElmNestedMapp_(ctLst, 'org.apache.jmeter.threads.ThreadGroup')
+    ##        self._xElmUniqueName_(smLst, cntrlClass, smplrsThru = True)
+    ##        self._currDumpFName_ = 'pcklUnqNm_ThGr_' + thgrName + '_Cntrl_' + self._xTreeLocalRoot_.find(xSet1[0]).text.replace(" ", "_")
+    ##        self.logger.info("Nodes from Controller %s exctracted", self._xTreeLocalRoot_.find(xSet1[0]).text)
+    ##        self._dumpOrigCntrlNm_()	
+    ##    del tmpLst
 		
 
 ## Метод создание префиксов для структуры составных вложенных элементов (для идентификации в коллекции)
@@ -345,7 +370,7 @@ class JMScriptItems:
 
 ## Метод создание нумерации для структуры составных элементов (для идентификации в коллекции)
 
-    def _xElmUniqueName_(self, revCntrLst, parntNdClass, thruTestPlan = False):
+    def _xElmUniqueName_(self, revCntrLst, parntNdClass, smplrsThru = False):
         tmpVar = None
         tmpVarNode = None
         tmpVarNew = None
@@ -358,11 +383,11 @@ class JMScriptItems:
             itm = tmpLst[0]
             itmCnt = tmpLst.count(itm)
             if itmCnt == 1:
-                if (thruTestPlan) and (itm in self._dctSmplThruTestPlan_.keys()):
+                if (smplrsThru) and (itm in self._dctSmplThru_.keys()):
                     elmJmClass = revCntrLst[0].find(xSet[1]).text
                     self._extrParntNodes_(revCntrLst[0], parntNdClass)
                     prntNdName = self._ancstNode_.find(xSet_1[1]).text
-                    self._storeOrigXElm_(revCntrLst[0], prntNdName, elmJmClass, self._dctSmplThruTestPlan_[itm], itm)
+                    self._storeOrigXElm_(revCntrLst[0], prntNdName, elmJmClass, self._dctSmplThru_[itm], itm)
                 tmpLst.pop(0)
                 revCntrLst.pop(0)
                 continue
@@ -375,8 +400,8 @@ class JMScriptItems:
                 elmJmClass = revCntrLst[itmIndx].find(xSet[1]).text
                 self._extrParntNodes_(revCntrLst[itmIndx], parntNdClass)
                 prntNdName = self._ancstNode_.find(xSet_1[1]).text
-                if (thruTestPlan):
-                    self._dctSmplThruTestPlan_[tmpVarNew] = tmpVar
+                if (smplrsThru):
+                    self._dctSmplThru_[tmpVarNew] = tmpVar
                 else:
                     self._storeOrigXElm_(revCntrLst[itmIndx], prntNdName, elmJmClass, tmpVar, tmpVarNew)
                 tmpLst.pop(itmIndx)
@@ -430,7 +455,7 @@ class JMScriptItems:
         if isinstance(vals[1], tuple):
             vals = tuple(vals[1])
         tmpLst = [itm[0] for itm in self._currBkpCntrLst_]
-        tmpVar = []
+        tmpVar = (vals)
         if tmpLst.count(vals[0]) != 0:
             indx = tmpLst.index(vals[0])
             exstOrigName = [val for val in self._currBkpCntrLst_[indx]][len(self._currBkpCntrLst_[indx])-2]
