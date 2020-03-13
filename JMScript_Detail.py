@@ -56,7 +56,7 @@ class JMScriptItems:
 ## Инициализация при создании объекта
 
     def __init__(self):
-        self.setPATH = "/home/evgen/work"                   # Рабочая директория
+        self.setPATH = "C:/Users/elobov/Documents/dev_jmproj/wrk_dir"                   # Рабочая директория
         self.setDirMASK = '^uc[_0-9]+'                      # Маска для фильтра скриптов
         
         self.setFName = 'example.jmx'                       # Название .jmx файла, должно присутствовать в каталоге self.scrFlsLst  
@@ -236,7 +236,7 @@ class JMScriptItems:
             self._extrCntrllNode_()
             self._dctSmplThru_ = {}
             self._currBkpCntrLst_ = self._thrGrpLst_.copy()
-            self._currDumpFName_ = 'pcklUnqNm_TstPl_' + self._xTreeRoot_.find(xSet[1]).text.replace(' ', '_') 
+            self._currDumpFName_ = 'pcklUnqNm_TstPl-' + self._xTreeRoot_.find(xSet[1]).text.replace(' ', '+') 
             self._dumpOrigCntrlNm_()
             self.xmlTreeToFile(True, "Нужно сгенерировать осн. коллекц.\nдля ThreadGroup")
         
@@ -300,20 +300,20 @@ class JMScriptItems:
                 self._xTreeLocalRoot_ = self._thrGrpLst_[tmpLst.index(itmLst)][0]
                 self._xElmNestedMapp_(itmLst, 'org.apache.jmeter.threads.ThreadGroup')
                 self._xElmUniqueName_(itmLst, 'org.apache.jmeter.threads.ThreadGroup')
-                self._currDumpFName_ = 'pcklUnqNm_ThGr_' + self._xTreeLocalRoot_.find(xSet1[0]).text.replace(" ", "_")
+                self._currDumpFName_ = 'pcklUnqNm_ThGr-' + self._xTreeLocalRoot_.find(xSet1[0]).text.replace(" ", "+")
                 self.logger.info("Nodes from ThreadGroup %s exctracted", self._xTreeLocalRoot_.find(xSet1[0]).text)
                 if self._smplThruVar_ == "ThreadGroup":
                     smplrLst = [itm for itm in self._xTreeLocalRoot_.findall(xSet[0]) if (self._checkElmTypeClls_(itm, "HTTPSampler"))]
                     self._xElmUniqueName_(smplrLst, "org.apache.jmeter.threads.ThreadGroup", smplrsThru = True)
                     del smplrLst
                 self._dumpOrigCntrlNm_()
-                self._extrCntrllNode_(itmLstCpy, self._xTreeLocalRoot_.find(xSet1[0]).text.replace(" ", "_"), nodeClass = "Sampler")
+                self._extrCntrllNode_(itmLstCpy, self._xTreeLocalRoot_.find(xSet1[0]).text, nodeClass = "Sampler")
             elif nodeClass == "Sampler":
                 self._xTreeLocalRoot_ = cntrlLst[tmpLst.index(itmLst)]
                 cntrlClass = self._xTreeLocalRoot_.find(xSet2[0]).text
                 tmpThru = (self._smplThruVar_ in ("ThreadGroup", "TestPlan"))
-                self._xElmUniqueName_(itmLst, cntrlClass, smplrsThru = tmpThru)
-                self._currDumpFName_ = 'pcklUnqNm_ThGr_' + thgrName + '_Cntrl_' + self._xTreeLocalRoot_.find(xSet1[0]).text.replace(" ", "_")
+                self._xElmUniqueName_(itmLst, cntrlClass, smplrsThru = tmpThru, thGrIfSmplr = thgrName)
+                self._currDumpFName_ = 'pcklUnqNm_Cntrl-' + thgrName.replace(' ', '+') + '-' + self._xTreeLocalRoot_.find(xSet1[0]).text.replace(" ", "+")
                 self.logger.info("Nodes from Controller %s exctracted", self._xTreeLocalRoot_.find(xSet1[0]).text)
                 self._dumpOrigCntrlNm_()
                 del tmpThru
@@ -370,7 +370,7 @@ class JMScriptItems:
 
 ## Метод создание нумерации для структуры составных элементов (для идентификации в коллекции)
 
-    def _xElmUniqueName_(self, revCntrLst, parntNdClass, smplrsThru = False):
+    def _xElmUniqueName_(self, revCntrLst, parntNdClass, smplrsThru = False, thGrIfSmplr = None):
         tmpVar = None
         tmpVarNode = None
         tmpVarNew = None
@@ -379,6 +379,10 @@ class JMScriptItems:
         bkpCntrLst = self._currBkpCntrLst_
         revCntrLst.reverse()
         tmpLst = [pr.find(xSet[2]).text for pr in revCntrLst]
+        tmpThGrIfSmplr = []
+        tmpThGrIfSmplr.append(thGrIfSmplr)
+        tmpThGrIfSmplr.append(None)
+        tmpThGrIfSmplr = list(filter(lambda a: a != None, tmpThGrIfSmplr))
         while(len(tmpLst)!=0):
             itm = tmpLst[0]
             itmCnt = tmpLst.count(itm)
@@ -387,7 +391,7 @@ class JMScriptItems:
                     elmJmClass = revCntrLst[0].find(xSet[1]).text
                     self._extrParntNodes_(revCntrLst[0], parntNdClass)
                     prntNdName = self._ancstNode_.find(xSet_1[1]).text
-                    self._storeOrigXElm_(revCntrLst[0], prntNdName, elmJmClass, self._dctSmplThru_[itm], itm)
+                    self._storeOrigXElm_(revCntrLst[0], *tmpThGrIfSmplr, prntNdName, elmJmClass, self._dctSmplThru_[itm], itm)
                 tmpLst.pop(0)
                 revCntrLst.pop(0)
                 continue
@@ -403,7 +407,7 @@ class JMScriptItems:
                 if (smplrsThru):
                     self._dctSmplThru_[tmpVarNew] = tmpVar
                 else:
-                    self._storeOrigXElm_(revCntrLst[itmIndx], prntNdName, elmJmClass, tmpVar, tmpVarNew)
+                    self._storeOrigXElm_(revCntrLst[itmIndx], *tmpThGrIfSmplr, prntNdName, elmJmClass, tmpVar, tmpVarNew)
                 tmpLst.pop(itmIndx)
                 revCntrLst.pop(itmIndx)
                 itmCnt = tmpLst.count(itm)
@@ -411,6 +415,7 @@ class JMScriptItems:
         del tmpVar
         del tmpVarNode
         del tmpVarNew
+        del tmpThGrIfSmplr
         ##bkpCntrLst.reverse()
         self._currBkpCntrLst_ = bkpCntrLst
         
@@ -492,21 +497,45 @@ class JMScriptItems:
 ## Метод восстановления ориг. названий нодов из сохраненных в файлах коллекциях
         
     def restorOrigCntrlNm(self):
+        xSet = self._pumpUpXPathToBuild_('all_nestNodes')
         tmpResLst = []
         self._extrThreadGroupNode_()
+        self._xTreeLocalRoot_ = self._xTreeRoot_
+        smplrLst = [itm for itm in self._xTreeRoot_.findall(xSet[0]) if (self._checkElmTypeClls_(itm, "Controller"))]
+        tmpResLst.append(self._restorOrigCntrlNm_(smplrLst, 'Cntrl'))
         tmpResLst.append(self._restorOrigCntrlNm_(self._thrGrpLst_, 'ThGr'))
-        tmpResLst.append(self._restorOrigCntrlNm_([(self._xTreeRoot_, '--', '--', '--','Test_Plan')], 'TstPl'))
+        tmpResLst.append(self._restorOrigCntrlNm_([(self._xTreeRoot_, '--', '--', '--','Test+Plan')], 'TstPl'))
         if tmpResLst.count(-1) != 0:
             self._msgInfo_ = "Ошибка при восстановлении\nориг. назв. элем. дерева,\nнужно проверить дампы.\nСм. лог"
         else:
             self.xmlTreeToFile(False, "Файл с оригинальными(восстан.)\nназв. элементов дерева создан\n---" + self.outFileRestrdOrig + "---")
+        del smplrLst
         
 ## Вспомогательный метод для загрузки коллекций из файлов и восстановления
 
     def _restorOrigCntrlNm_(self, elmLst, fPstfx):
-        tmpElmNm = None
-        flLst = ['pcklUnqNm_' + fPstfx + '_' + fl[4].replace(' ', '_') + '.txt' for fl in elmLst]
         xSet = self._pumpUpXPathToBuild_('all_nestNodes')
+        xSet_1 = self._pumpUpXPathToBuild_('prop_nodeName')
+        tmpElmNm = None
+        cntrlLst = []
+        tmpFlLst = []
+        flLst = []
+        if fPstfx == "Cntrl":
+            cntrlLst = [itm.find(xSet_1[0]).text for itm in elmLst]
+            os.chdir('jmProj_dumps/'+ self._currDumpDir_)
+            tmpFlLst = os.listdir('.')
+            tmpFlLst = [fl.split('-') for fl in tmpFlLst if fl.split('-')[0] == "pcklUnqNm_Cntrl"]
+            for flItm in tmpFlLst:
+                print(flItm[2][:len(flItm[2]) - 4])
+                if cntrlLst.count(flItm[2][:len(flItm[2]) - 4].replace('+', ' ')) != 0:
+                    flLst.append('-'.join(flItm))
+                    cntrlLst.remove(flItm[2][:len(flItm[2]) - 4].replace('+', ' '))
+            if len(cntrlLst) != 0:
+                self.logger.error("Error while loading collection for controllers: " + str(', '.join(cntrlLst)))
+                return -1
+            os.chdir(self.setPATH)
+        else:
+            flLst = ['pcklUnqNm_' + fPstfx + '-' + fl[4].replace(' ', '+') + '.txt' for fl in elmLst]
         flLst.sort()
         for flNm in flLst:
             try:
@@ -518,11 +547,19 @@ class JMScriptItems:
                 return -1
             if len(cllctn) == 0:
                 continue
-            tmpUppElm = [k[0] for k in elmLst if k[0].find(xSet[2]).text == cllctn[0][0]].pop(0)
+            if fPstfx == "Cntrl":
+                self._extrHostNode_(cllctn[0][0])
+                tmpThGr = self._getCurrNode_()
+                tmpUppElm = [cntrl for cntrl in tmpThGr.findall(xSet[0]) if cntrl.find(xSet_1[0]).text == cllctn[0][1]].pop(0)
+            else:
+                tmpUppElm = [k[0] for k in elmLst if k[0].find(xSet[2]).text == cllctn[0][0]].pop(0)
             self._xTreeLocalRoot_ = tmpUppElm
             self._appendXElmToCllctnItm_(cllctn)
             self._constrictBkpCl_()
             self.logger.info("Collection succesfully restored from file " + flNm)
+        del cntrlLst
+        del tmpFlLst
+        del flLst
         return 0
         
 ## Метод дополнения элементов загруженной из файла коллекции соответствующим элементом (объектом) дерева
