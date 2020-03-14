@@ -56,7 +56,7 @@ class JMScriptItems:
 ## Инициализация при создании объекта
 
     def __init__(self):
-        self.setPATH = "C:/Users/elobov/Documents/dev_jmproj/wrk_dir"                   # Рабочая директория
+        self.setPATH = "/home/evgen/work"                   # Рабочая директория
         self.setDirMASK = '^uc[_0-9]+'                      # Маска для фильтра скриптов
         
         self.setFName = 'example.jmx'                       # Название .jmx файла, должно присутствовать в каталоге self.scrFlsLst  
@@ -108,6 +108,7 @@ class JMScriptItems:
         self._selctdKey_ = None                             # Текущий выбраный ключ
         self._dctSmplThru_ = {}                             # Словарь оригинальных названий при режиме сквозной нумерации
         self._smplThruVar_ = "Controller"                   # Переменная сквозной нумерации
+        self._ifNotRestoreSamplrs_ = False                  # Переменная восстановления оригинальных названий сэмплеров
 
         #self._checkDmpDirExst_()                           # Проверка, что общий каталог для дампов существует
         self.excptHandl = excpt.ExceptHandler()             # Создание объекта класса ExceptHandler
@@ -502,7 +503,8 @@ class JMScriptItems:
         self._extrThreadGroupNode_()
         self._xTreeLocalRoot_ = self._xTreeRoot_
         smplrLst = [itm for itm in self._xTreeRoot_.findall(xSet[0]) if (self._checkElmTypeClls_(itm, "Controller"))]
-        tmpResLst.append(self._restorOrigCntrlNm_(smplrLst, 'Cntrl'))
+        if not (self._ifNotRestoreSamplrs_):
+            tmpResLst.append(self._restorOrigCntrlNm_(smplrLst, 'Cntrl'))
         tmpResLst.append(self._restorOrigCntrlNm_(self._thrGrpLst_, 'ThGr'))
         tmpResLst.append(self._restorOrigCntrlNm_([(self._xTreeRoot_, '--', '--', '--','Test+Plan')], 'TstPl'))
         if tmpResLst.count(-1) != 0:
@@ -548,6 +550,7 @@ class JMScriptItems:
             if len(cllctn) == 0:
                 continue
             if fPstfx == "Cntrl":
+                self._xTreeLocalRoot_ = self._xTreeRoot_
                 self._extrHostNode_(cllctn[0][0])
                 tmpThGr = self._getCurrNode_()
                 tmpUppElm = [cntrl for cntrl in tmpThGr.findall(xSet[0]) if cntrl.find(xSet_1[0]).text == cllctn[0][1]].pop(0)
