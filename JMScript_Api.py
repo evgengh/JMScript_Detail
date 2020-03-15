@@ -495,6 +495,7 @@ class JMScriptUsrApi(tk.Frame):
     def prcdRstrOrigNms(self):
         self.jmscdObj.outFileRestrdOrig = self.getEntryText(self.vrRestreFNmValue)
         self.jmscdObj.setFName = self.getEntryText(self.vrFnameValue)
+        self.jmscdObj._ifNotRestoreSamplrs_ = self._varCbIfNotRstrUnqInSmpl_.get()
         self.jmscdObj.restorOrigCntrlNm()
         self.txtWdgtDelete(True)
         self.txtWdgtInsert(self.jmscdObj._msgInfo_)
