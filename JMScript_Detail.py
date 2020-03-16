@@ -45,8 +45,9 @@ import sys
 import urllib
 import datetime
 import pickle
-import xml.etree.ElementTree as ET
 import logging
+import xml.etree.ElementTree as ET
+import urllib.parse as urlpars
 import exceptionHandler as excpt
 
 class JMScriptItems:
@@ -56,7 +57,7 @@ class JMScriptItems:
 ## Инициализация при создании объекта
 
     def __init__(self):
-        self.setPATH = "/home/evgen/work"                   # Рабочая директория
+        self.setPATH = "C:/Users/elobov/Documents/dev_jmproj/wrk_dir"                   # Рабочая директория
         self.setDirMASK = '^uc[_0-9]+'                      # Маска для фильтра скриптов
         
         self.setFName = 'example.jmx'                       # Название .jmx файла, должно присутствовать в каталоге self.scrFlsLst  
@@ -109,6 +110,7 @@ class JMScriptItems:
         self._dctSmplThru_ = {}                             # Словарь оригинальных названий при режиме сквозной нумерации
         self._smplThruVar_ = "Controller"                   # Переменная сквозной нумерации
         self._ifNotRestoreSamplrs_ = False                  # Переменная восстановления оригинальных названий сэмплеров
+        self._ifCutUrlInSmpl_ = False                       # Переменная, включающая признак усечения названий сэмплеров
 
         #self._checkDmpDirExst_()                           # Проверка, что общий каталог для дампов существует
         self.excptHandl = excpt.ExceptHandler()             # Создание объекта класса ExceptHandler
@@ -198,6 +200,8 @@ class JMScriptItems:
             self._xTreeRoot_ = self._xmlTree_.getroot()
             self.logger.info("JMX-file parsed and loaded, xml-tree created")
             self._infoMsg_ = "Загружен файл " + self.setFName
+            if (self._ifCutUrlInSmpl_):
+                self.truncSmplrName()
         else:
             self.logger.info("Can't load jmx-file")
             self._infoMsg_ = "Такой *.jmx файл не найден"
@@ -528,7 +532,6 @@ class JMScriptItems:
             tmpFlLst = os.listdir('.')
             tmpFlLst = [fl.split('-') for fl in tmpFlLst if fl.split('-')[0] == "pcklUnqNm_Cntrl"]
             for flItm in tmpFlLst:
-                print(flItm[2][:len(flItm[2]) - 4])
                 if cntrlLst.count(flItm[2][:len(flItm[2]) - 4].replace('+', ' ')) != 0:
                     flLst.append('-'.join(flItm))
                     cntrlLst.remove(flItm[2][:len(flItm[2]) - 4].replace('+', ' '))
@@ -1234,6 +1237,31 @@ class JMScriptItems:
             return (xArgName, '')
         elif funcName == 'argmntValue':
             return (xArgValue, '')
+            
+## Метод усечения названий сэмплеров
+
+    def truncSmplrName(self):
+        xSet = self._pumpUpXPathToBuild_('all_nestNodes')
+        tmpLst = [itm for itm in self._xTreeRoot_.findall(xSet[0]) if (self._checkElmTypeClls_(itm, "HTTPSampler"))]
+        smplrCntErr = 0
+        for smplr in tmpLst:
+            try:
+                origName = smplr.find(xSet[2]).text
+                newNameParts = urlpars.urlparse(origName)
+                newNamePth = newNameParts.path.split('/')
+                newName = newNamePth[len(newNamePth) - 1]
+                smplr.find(xSet[2]).text = newName
+                self.logger.info("Sampler names were succesfully truncated.")
+            except:
+                smplrCntErr += 1
+                smplr.find(xSet[2]).text = origName
+                self.logger.error("Truncating sampler name (%s) went wrong: " + str(sys.exc_info()[0]), origName)
+        self._infoMsg_ = self._infoMsg_ + "\n--------"
+        self._infoMsg_ = self._infoMsg_ + "\nПроизведено усечение назв. сэмплеров\n(признак = True)."
+        if smplrCntErr != 0:
+            self._infoMsg_ = self._infoMsg_ + "\n!!! ----"
+            self._infoMsg_ = self._infoMsg_ + "\nОшибка при усечении назв. сэмплеров\n(всего " + str(smplrCntErr) + " ошибок)\nПодробнее в логе."
+        del tmpLst
 
 ## Метод генерации регулярного выражения из пар переданных картежом (*cnctTpls) вида ((a1, a2), (b2, b2), ...)
 

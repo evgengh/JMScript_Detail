@@ -472,6 +472,7 @@ class JMScriptUsrApi(tk.Frame):
     def prcdGetJMXMkTree(self):
         self.jmscdObj.setFName = self.getEntryText(self.vrFnameValue)
         self.txtWdgtDelete(False)
+        self.jmscdObj._ifCutUrlInSmpl_ = self._varIfCutUrlInSmpl_.get()
         self.jmscdObj.getJMXFileAndMakeTree()
         self.btTreeUnqNms.config(state = tk.NORMAL)
         self.btUpdateXMLTree.config(state = tk.NORMAL)
