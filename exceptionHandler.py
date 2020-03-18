@@ -50,6 +50,9 @@ class TkinterRuntimeExcept(AppError):
 
 class CollectKeyValError(AppError):
     pass
+    
+class NodeAttributeError(AppError):
+    pass
 
 		
 class ExceptHandler:
