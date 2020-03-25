@@ -185,14 +185,12 @@ class JMScriptUsrApi(tk.Frame):
         self._frLeftUpperFuncElemFrame_ = self.getSubWgts(self.leftUpperFuncElemFrame, tk._dummyFrame)
         tempText = """Некоторые замечания
 по работе с приложением: 
-1 - рекомендуется открыть 
+ - рекомендуется открыть 
 в jmeter файл, сгенерированный 
 после загрузки jmx-файла; 
-2 - корректно выставлять 
-настройки уникальн. сэмпл.; 
-3 - внимательно прочитать 
-файл README перед началом 
-работы с приложением."""
+ - если произлошла ошибка
+при восст., см. README.""" 
+
         self.lbLeftUpperTextTemp = tk.Label(self._frLeftUpperFuncElemFrame_, text = tempText)
         self.lbLeftUpperTextTemp.pack(anchor = tk.W)
         self.leftUpperFuncElemFrame.pack(anchor = tk.W)		
