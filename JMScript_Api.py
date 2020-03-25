@@ -91,6 +91,13 @@ class JMScriptUsrApi(tk.Frame):
         ###############
         self.xmlMsgLst = []
 
+        self._varIfCutUrlInSmpl_ = tk.BooleanVar()
+        self._varIfCutUrlInSmpl_.set(False)
+        self._varRbSmplThruNum_ = tk.StringVar()
+        self._varRbSmplThruNum_.set("Controller")
+        self._varCbIfNotRstrUnqInSmpl_ = tk.BooleanVar()
+        self._varCbIfNotRstrUnqInSmpl_.set(False)
+
         self._initText_ = """Перед работой с прилож.\n
 		ознакомтесь с инструкцией.\n
 		Еще какой-нибудь текст добавиться,\n
@@ -132,7 +139,62 @@ class JMScriptUsrApi(tk.Frame):
         self.btQuit.pack(side =tk.BOTTOM)
         ##self.loadFrame = tk.LabelFrame(self.fsFrame)
         ##self.listBMsg = tk.Listbox(self.loadFrame, relief='flat')
-        self.btnLstFrame = tk.LabelFrame(self.fsFrame)
+
+        self.topElemsFrame = tk.Frame(self.fsFrame)
+        self.btnLstFrame = tk.LabelFrame(self.topElemsFrame)
+        self.smplUnqOptFrame = tk.Frame(self.topElemsFrame)
+        
+        self.smplUnqOptLabelF = tk.LabelFrame(self.smplUnqOptFrame)
+        
+        self._lbSmplUnqOptLabelF_ = self.getSubWgts(self.smplUnqOptLabelF, tk._dummyLabel)
+        self._lbSmplUnqOptLabelF_.config(text = "Уник. сэмпл.")
+        self._frSmplUnqOptLabelF_ = self.getSubWgts(self.smplUnqOptLabelF, tk._dummyFrame)
+        
+        self.cbIfCutUrl = tk.Checkbutton(self._frSmplUnqOptLabelF_, text = "Сократ. Url в назв. сэмпл.", variable = self._varIfCutUrlInSmpl_)
+        
+        self.smplThruNum = tk.LabelFrame(self._frSmplUnqOptLabelF_)
+        self._lbSmplThruNum_ = self.getSubWgts(self.smplThruNum, tk._dummyLabel)
+        self._lbSmplThruNum_.config(text = "Скозн. нумер.")
+        self._frSmplThruNum_ = self.getSubWgts(self.smplThruNum, tk._dummyFrame)
+        self.smplThruNumCntrl = tk.Radiobutton(self._frSmplThruNum_, text = "Контроллер", variable = self._varRbSmplThruNum_, value = "Controller")
+        self.smplThruNumThGr = tk.Radiobutton(self._frSmplThruNum_, text = "ТредГрупп", variable = self._varRbSmplThruNum_, value = "ThreadGroup")
+        self.smplThruNumTstPl = tk.Radiobutton(self._frSmplThruNum_, text = "ТестПлан", variable = self._varRbSmplThruNum_, value = "TestPlan")
+        self.smplThruNumCntrl.pack(side = tk.TOP, anchor = tk.W)
+        self.smplThruNumThGr.pack(side = tk.TOP, anchor = tk.W)
+        self.smplThruNumTstPl.pack(side = tk.TOP, anchor = tk.W)
+        
+        self.cbIfNotRstrUnqInSmpl = tk.Checkbutton(self._frSmplUnqOptLabelF_, text = "Не восст. ориг. назв. сэмпл.", variable = self._varCbIfNotRstrUnqInSmpl_)
+        
+        self.cbIfCutUrl.pack(side = tk.TOP, anchor = tk.W)
+        self.smplThruNum.pack(side = tk.TOP, anchor = tk.W)
+        self.cbIfNotRstrUnqInSmpl.pack(side = tk.TOP, anchor = tk.W)
+        
+        self.smplUnqOptLabelF.pack(anchor = tk.E)
+        self.smplUnqOptFrame.config(width = self.smplThruNum.winfo_reqwidth(), padx = 100)
+        
+        self.emptyFrameTemp = tk.Frame(self.topElemsFrame)
+        self.update_idletasks()
+        leftCornerWidth = self._frSmplUnqOptLabelF_.winfo_reqwidth() + int(self.smplUnqOptLabelF.cget("borderwidth")) * 2
+        leftCornerHeight = self.smplUnqOptLabelF.winfo_reqheight() + 2
+        self.emptyFrameTemp.config(width = leftCornerWidth + 202, height = leftCornerHeight)
+        self.emptyFrameTemp.pack_propagate(0)
+        
+        self.leftUpperFuncElemFrame = tk.LabelFrame(self.emptyFrameTemp)
+        self._lbLeftUpperFuncElemFrame_ = self.getSubWgts(self.leftUpperFuncElemFrame, tk._dummyLabel)
+        self._lbLeftUpperFuncElemFrame_.config(text = "Ифно")
+        self._frLeftUpperFuncElemFrame_ = self.getSubWgts(self.leftUpperFuncElemFrame, tk._dummyFrame)
+        tempText = """Некоторые замечания
+по работе с приложением: 
+ - рекомендуется открыть 
+в jmeter файл, сгенерированный 
+после загрузки jmx-файла; 
+ - если произлошла ошибка
+при восст., см. README.""" 
+
+        self.lbLeftUpperTextTemp = tk.Label(self._frLeftUpperFuncElemFrame_, text = tempText)
+        self.lbLeftUpperTextTemp.pack(anchor = tk.W)
+        self.leftUpperFuncElemFrame.pack(anchor = tk.W)		
+
         ##self.msgsToAscFrame = tk.Listbox(self.loadFrame, relief='flat', selectmode='multiple')
         ##self.vScroll = tk.Scrollbar(self.loadFrame, orient=tk.VERTICAL)
         ##self.msgsToAscFrame.config( yscrollcommand=self.vScroll.set)
@@ -248,7 +310,7 @@ class JMScriptUsrApi(tk.Frame):
         
         ##Опция выбора сущности на данный момент выключена
         ####self.lstWrkEnts.pack(side = tk.TOP)
-        self.tstOutText = tk.Text(self._frOutRslts_, state = tk.DISABLED, bg='#FFEFD5', width=64)
+        self.tstOutText = tk.Text(self._frOutRslts_, state = tk.DISABLED, bg='#FFEFD5')#, width=64)
         self.tstOutText.pack(side = tk.TOP)
         self.txtWdgtDelete(False)
         self.txtWdgtInsert(self._initText_)
@@ -371,7 +433,10 @@ class JMScriptUsrApi(tk.Frame):
         self.fsFrame.pack(side="top", fill='x')
         self.mCllctnFrame.pack(side=tk.LEFT, fill='x')
         ##self.loadFrame.pack(side="top", fill='x')
-        self.btnLstFrame.pack(side="top", expand=1)
+        self.smplUnqOptFrame.pack(side = tk.RIGHT, anchor = tk.E)
+        self.btnLstFrame.pack(side = tk.RIGHT)
+        self.emptyFrameTemp.pack(side = tk.RIGHT)
+        self.topElemsFrame.pack(side="top", fill='y')
         ##self.varsFrame.pack(side=tk.TOP)
         ##self.btnCollctnFrame.pack(side=tk.TOP)
         #self.inputFrame.pack(side="top")
@@ -405,6 +470,7 @@ class JMScriptUsrApi(tk.Frame):
     def prcdGetJMXMkTree(self):
         self.jmscdObj.setFName = self.getEntryText(self.vrFnameValue)
         self.txtWdgtDelete(False)
+        self.jmscdObj._ifCutUrlInSmpl_ = self._varIfCutUrlInSmpl_.get()
         self.jmscdObj.getJMXFileAndMakeTree()
         self.btTreeUnqNms.config(state = tk.NORMAL)
         self.btUpdateXMLTree.config(state = tk.NORMAL)
@@ -413,6 +479,7 @@ class JMScriptUsrApi(tk.Frame):
     def prcdTreeUnqNms(self):
         self.jmscdObj.outFileUniqueNames = self.getEntryText(self.vrUnqFNmValue)
         self.txtWdgtDelete(False)
+        self.jmscdObj._smplThruVar_ = self._varRbSmplThruNum_.get()
         self.jmscdObj.xmlTreeStructToUnqNams()
         ##
         self.lsbxPileMCllct.delete(0, tk.END)
@@ -427,6 +494,7 @@ class JMScriptUsrApi(tk.Frame):
     def prcdRstrOrigNms(self):
         self.jmscdObj.outFileRestrdOrig = self.getEntryText(self.vrRestreFNmValue)
         self.jmscdObj.setFName = self.getEntryText(self.vrFnameValue)
+        self.jmscdObj._ifNotRestoreSamplrs_ = self._varCbIfNotRstrUnqInSmpl_.get()
         self.jmscdObj.restorOrigCntrlNm()
         self.txtWdgtDelete(True)
         self.txtWdgtInsert(self.jmscdObj._msgInfo_)
@@ -583,7 +651,14 @@ class JMScriptUsrApi(tk.Frame):
         self.dctItmsVar = tk.BooleanVar()
         self.dctItmsVar.set(not ifRadio)
         tmpChkLst = self.getSubWgts(self.dctItmsChkLst, tk._dummyHList)
-        tmpChkLst.config(header = True, width = 61, borderwidth=1)
+        if (self.jmscdObj.platf.startswith('linux')):
+            widthFrInSymb = int(self.tstOutText.winfo_width() / 7 - 3)
+        elif (self.jmscdObj.platf.startswith('win')):
+            widthFrInSymb = int(self.tstOutText.winfo_width() / 6 - 4)
+        else:
+            widthFrInSymb = int(self.tstOutText.winfo_width() / 7 - 3)
+        heightTstInSymb = int(round(self.tstOutText.cget("height") / 2, 0))
+        tmpChkLst.config(header = True, width = widthFrInSymb, height = heightTstInSymb, borderwidth=1)
         tmpChkLst.header_create(col = 0, itemtype = tk.TEXT, text = self.jmscdObj._selctdKey_)
         self.chkBtnTst = tk.Checkbutton(tmpChkLst, command = self.testCmd, variable = self.dctItmsVar)
         self.chkBtnTst.config(text = "Авто выбор/Все знач.")
@@ -598,7 +673,7 @@ class JMScriptUsrApi(tk.Frame):
                 entrVal = (itmCllctn[lnNum][0], ((entr),)) if isinstance(itmCllctn[lnNum], tuple) else itmCllctn[lnNum]
                 self._selctdItemsLst_.append((curEntr, entrVal))
                 exec('tmpChkLst.add(eval("curEntr"), itemtype = tk.IMAGETEXT, data = curEntr, text = entrTxt)')
-        self.tstOutText.window_create(tk.END, window = self.dctItmsChkLst)
+        self.tstOutText.window_create(tk.END, window = self.dctItmsChkLst, align = tk.TOP)
         tmpIfMode = 'off' if (ifRadio) else 'on'
         for i in tmpChkLst.info_children():
             self.dctItmsChkLst.setstatus(i, mode=tmpIfMode)
