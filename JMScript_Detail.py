@@ -1199,11 +1199,12 @@ class JMScriptItems:
                 newNamePth = newNameParts.path.split('/')
                 newName = newNamePth[len(newNamePth) - 1]
                 smplr.attrib["testname"] = newName
-                self.logger.info("Sampler names were succesfully truncated.")
             except:
                 smplrCntErr += 1
                 smplr.attrib["testname"] = newName
                 self.logger.error("Truncating sampler name (%s) went wrong: " + str(sys.exc_info()[0]), origName)
+        if smplrCntErr == 0:
+            self.logger.info("Sampler names were succesfully truncated.")
         self._infoMsg_ = self._infoMsg_ + "\n--------"
         self._infoMsg_ = self._infoMsg_ + "\nПроизведено усечение назв. сэмплеров\n(признак = True)."
         if smplrCntErr != 0:

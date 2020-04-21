@@ -252,7 +252,7 @@ class JMScriptUsrApi(tk.Frame):
         
         self.vrFnameLabel = tk.Label(self.vrFnameFrame)
         self.vrFnameValue = tk.Entry(self.vrFnameFrame, bg='white')
-        self.vrFnameLabel.config(text='Файл (*.jmx) для парам.:', justify = tk.LEFT)
+        self.vrFnameLabel.config(text='Файл(*.jmx) для парам.:', justify = tk.LEFT)
         self.vrFnameValue.config(justify = tk.LEFT)
         self.vrFnameValue.insert(0, self.jmscdObj.setFName)
         self.vrFnameLabel.pack(side = tk.LEFT)
@@ -291,7 +291,7 @@ class JMScriptUsrApi(tk.Frame):
             self.lsbxPileMCllct.insert(tk.END, '--')
             
         self.btPileMCllct = tk.Button(self._frPileOptns_, text="Аккумул. раб. коллекц.")
-        self.btPileMCllct.config(command = self.prcdPileMCllct, relief='raised')
+        self.btPileMCllct.config(command = self.prcdPileMCllct, relief='groove')
         self.lsbxPileMCllct.pack(side = tk.TOP)
         self.btPileMCllct.pack(side = tk.TOP)
         self.frPileOptns.pack(side = tk.LEFT)
@@ -414,7 +414,7 @@ class JMScriptUsrApi(tk.Frame):
         ##
         self.frSetValsToSlctn = tk.Frame(self._frGetListKeys_, pady = 2)
         self.btSetValsToSlctn = tk.Button(self.frSetValsToSlctn, text = 'Установ.\n для дан.\n элемен.\n словар.')
-        self.btSetValsToSlctn.config(command = self.prcdSetValsToSlctn, state = tk.DISABLED)
+        self.btSetValsToSlctn.config(command = self.prcdSetValsToSlctn, state = tk.DISABLED, relief = "groove")
         self.lblSetValsToSlctn = tk.Label(self.frSetValsToSlctn, text = ' <==> ')
         self.entSetValsToSlctn = tk.Entry(self.frSetValsToSlctn, bg='white')
         self.entSetValsToSlctn.insert(0, '*новое знач.*')
