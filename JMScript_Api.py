@@ -81,6 +81,8 @@ class JMScriptUsrApi(tk.Frame):
         self._chkBtVar_.set(False)
         self._incrOnGenVar_ = tk.BooleanVar()
         self._incrOnGenVar_.set(False)
+        self._volatilPrm_ = tk.BooleanVar()
+        self._volatilPrm_.set(True)
         self._selctdItemsLst_ = []
         self._selctdKey_ = None
         self._txtBegin_ = 0.0
@@ -172,28 +174,31 @@ class JMScriptUsrApi(tk.Frame):
         self.smplUnqOptLabelF.pack(anchor = tk.E)
         self.smplUnqOptFrame.config(width = self.smplThruNum.winfo_reqwidth(), padx = 100)
         
-        self.emptyFrameTemp = tk.Frame(self.topElemsFrame)
+        self.paramVolatilFrame = tk.Frame(self.topElemsFrame)
         self.update_idletasks()
         leftCornerWidth = self._frSmplUnqOptLabelF_.winfo_reqwidth() + int(self.smplUnqOptLabelF.cget("borderwidth")) * 2
         leftCornerHeight = self.smplUnqOptLabelF.winfo_reqheight() + 2
-        self.emptyFrameTemp.config(width = leftCornerWidth + 202, height = leftCornerHeight)
-        self.emptyFrameTemp.pack_propagate(0)
+        self.paramVolatilFrame.config(width = leftCornerWidth + 202, height = leftCornerHeight)
+        self.paramVolatilFrame.pack_propagate(0)
         
-        self.leftUpperFuncElemFrame = tk.LabelFrame(self.emptyFrameTemp)
-        self._lbLeftUpperFuncElemFrame_ = self.getSubWgts(self.leftUpperFuncElemFrame, tk._dummyLabel)
-        self._lbLeftUpperFuncElemFrame_.config(text = "Ифно")
-        self._frLeftUpperFuncElemFrame_ = self.getSubWgts(self.leftUpperFuncElemFrame, tk._dummyFrame)
-        tempText = """Некоторые замечания
-по работе с приложением: 
- - рекомендуется открыть 
-в jmeter файл, сгенерированный 
-после загрузки jmx-файла; 
- - если произлошла ошибка
-при восст., см. README.""" 
+        self.paramVolatilLabel = tk.LabelFrame(self.paramVolatilFrame)
+        self._lbParamVolatilLabel_ = self.getSubWgts(self.paramVolatilLabel, tk._dummyLabel)
+        self._lbParamVolatilLabel_.config(text = "Статистика")
+        self._frParamVolatilLabel_ = self.getSubWgts(self.paramVolatilLabel, tk._dummyFrame)
+        
+        self.frBtGetVolatilPrm = tk.Frame(self._frParamVolatilLabel_)
+        self.btBtGetVolatilPrm = tk.Button(self.frBtGetVolatilPrm, text="Получ. стат. по парам.")
 
-        self.lbLeftUpperTextTemp = tk.Label(self._frLeftUpperFuncElemFrame_, text = tempText)
-        self.lbLeftUpperTextTemp.pack(anchor = tk.W)
-        self.leftUpperFuncElemFrame.pack(anchor = tk.W)		
+        self.rBtGetVolatilPrm = tk.Radiobutton(self.frBtGetVolatilPrm, text = 'Волатил.   ', variable = self._volatilPrm_, value = True)
+        self.rBtGetNonVolatilPrm = tk.Radiobutton(self.frBtGetVolatilPrm, text = 'Не волатил.', variable = self._volatilPrm_, value = False)
+        self.btBtGetVolatilPrm.config(relief='groove')
+        self.btBtGetVolatilPrm.config(command = self.prcdfGetVolatilPrms)
+        self.frBtGetVolatilPrm.pack(side = tk.TOP, anchor = tk.W)
+        self.btBtGetVolatilPrm.pack(side = tk.LEFT)
+        self.rBtGetVolatilPrm.pack(side = tk.TOP, anchor = tk.W)
+        self.rBtGetNonVolatilPrm.pack(side = tk.TOP, anchor = tk.W)
+
+        self.paramVolatilLabel.pack(anchor = tk.W)
 
         ##self.msgsToAscFrame = tk.Listbox(self.loadFrame, relief='flat', selectmode='multiple')
         ##self.vScroll = tk.Scrollbar(self.loadFrame, orient=tk.VERTICAL)
@@ -435,7 +440,7 @@ class JMScriptUsrApi(tk.Frame):
         ##self.loadFrame.pack(side="top", fill='x')
         self.smplUnqOptFrame.pack(side = tk.RIGHT, anchor = tk.E)
         self.btnLstFrame.pack(side = tk.RIGHT)
-        self.emptyFrameTemp.pack(side = tk.RIGHT)
+        self.paramVolatilFrame.pack(side = tk.RIGHT)
         self.topElemsFrame.pack(side="top", fill='y')
         ##self.varsFrame.pack(side=tk.TOP)
         ##self.btnCollctnFrame.pack(side=tk.TOP)
@@ -489,7 +494,7 @@ class JMScriptUsrApi(tk.Frame):
         self.lsbxPileMCllct.activate(0)
         self.logger.info("List of ThreadGroup entries widget created")
         self.btTreeUnqNms.config(state = tk.DISABLED)
-        self.txtWdgtInsert(self.jmscdObj._msgInfo_)
+        self.txtWdgtInsert(self.jmscdObj._infoMsg_)
         
     def prcdRstrOrigNms(self):
         self.jmscdObj.outFileRestrdOrig = self.getEntryText(self.vrRestreFNmValue)
@@ -497,7 +502,7 @@ class JMScriptUsrApi(tk.Frame):
         self.jmscdObj._ifNotRestoreSamplrs_ = self._varCbIfNotRstrUnqInSmpl_.get()
         self.jmscdObj.restorOrigCntrlNm()
         self.txtWdgtDelete(True)
-        self.txtWdgtInsert(self.jmscdObj._msgInfo_)
+        self.txtWdgtInsert(self.jmscdObj._infoMsg_)
         
     def prcdPileMCllct(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
@@ -506,13 +511,14 @@ class JMScriptUsrApi(tk.Frame):
         self.logger.info("ThreadGroup %s chosen", self.jmscdObj._currThrGrNam_)
         self.jmscdObj.extrHTTPDataNamesAndLinks()
         self.txtWdgtDelete(False)
-        self.txtWdgtInsert(self.jmscdObj._msgInfo_)
+        self.txtWdgtInsert(self.jmscdObj._infoMsg_)
         
     def prcdGetDataDictItem(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
         if (self.ifChkLstRadio()):
             self.vlGetDataDictItem.delete(0, tk.END)
-            entryDict = self.entryFillVal() 
+            entryDict = self.entryFillVal()
+            print(entryDict)
             self.vlGetDataDictItem.insert(0, entryDict["key"])
         try:
             tmpVal = self.jmscdObj.getDataDictItem(self.vlGetDataDictItem.get())
@@ -624,9 +630,9 @@ class JMScriptUsrApi(tk.Frame):
         tmpChkLst = self.getChckLstSel()
         [self.jmscdObj.setValueByKeyScrFunc(newVal,(self.jmscdObj._selctdKey_,cntrl[0],prm[0])) for cntrl in tmpChkLst for prm in cntrl[1]]
         self._selctdItemsLst_.clear()
-        self.jmscdObj._msgInfo_ = "Измен. добавлены в дерево,\nпосле обнов. будут видны\nпри работе с парам."
+        self.jmscdObj.infoMsg = "Измен. добавлены в дерево,\nпосле обнов. будут видны\nпри работе с парам."
         self.txtWdgtDelete(True)
-        self.txtWdgtInsert(self.jmscdObj._msgInfo_)
+        self.txtWdgtInsert(self.jmscdObj.infoMsg)
         del tmpChkLst
         
     def getSubWgts(self, widget, wgtClass):
@@ -687,13 +693,22 @@ class JMScriptUsrApi(tk.Frame):
         #self.jmscdObj._linksToUpdate_ = ()
         #self.btUpdateXMLTree.config(state = tk.DISABLED)
         self.txtWdgtDelete(True)
-        self.txtWdgtInsert(self.jmscdObj._msgInfo_)
+        self.txtWdgtInsert(self.jmscdObj._infoMsg_)
         
     def prcdWrtXmlTree(self):
         self.jmscdObj.outFileUniqueNames = self.vrUnqFNmValue.get()
         self.jmscdObj.wrtTreeToFile()
         self.txtWdgtDelete(True)
-        self.txtWdgtInsert(self.jmscdObj._msgInfo_)
+        self.txtWdgtInsert(self.jmscdObj._infoMsg_)
+        
+    def prcdfGetVolatilPrms(self):
+        self.jmscdObj._ifVolatileParam_ = self._volatilPrm_.get()
+        tmpRes = self.jmscdObj.getVolatilParams()
+        if tmpRes != 0:
+            self.jmscdObj._selctdKey_ = "Статистика"
+            self.crtChkLstItms(tmpRes, ifRadio = True)
+        self.txtWdgtDelete(True)
+        self.txtWdgtInsert(self.jmscdObj._infoMsg_)
 
     def txtWdgtInsert(self, text, *tags):
         self._txtBegin_ = 0.0
@@ -723,7 +738,7 @@ class JMScriptUsrApi(tk.Frame):
     def entryFillVal(self):
         fillVals = {"key": None, "cntrl": "<назв. контрлр.>","smplr":"<назв. сэмплр.>"}
         slctdVal = [lstItm[1] for lstItm in self._selctdItemsLst_ if self.dctItmsChkLst.getselection().count(lstItm[0]) != 0].pop(0)
-        if self.jmscdObj._selctdKey_ in ("Все парам.", "Все ссылки"):
+        if self.jmscdObj._selctdKey_ in ("Все парам.", "Все ссылки", "Статистика"):
             fillVals["key"] = slctdVal
         else:
             fillVals["key"] = self.jmscdObj._selctdKey_
