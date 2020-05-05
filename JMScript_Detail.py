@@ -42,6 +42,7 @@
 import os
 import re
 import sys
+import math
 import urllib
 import datetime
 import pickle
@@ -57,9 +58,9 @@ class JMScriptItems:
 ## Инициализация при создании объекта
 
     def __init__(self):
-        self.setPATH = "D:/Documents/TestJmProj/files_jmx"                   # Рабочая директория
+        self.setPATH = "/home/pi/Документы/jmProj/wrk_dir"                   # Рабочая директория
         self.setDirMASK = '^uc[_0-9]+'                      # Маска для фильтра скриптов
-        self.setPrefTrailInUniqNames = {"pref": '+', "trail": "#"} # Задаем символы префикса начала и разделителя перед номер для уник. имен
+        self.setPrefTrailInUniqNames = {"pref": '~', "trail": "#"} # Задаем символы префикса начала и разделителя перед номер для уник. имен
 	    
         self.setFName = 'example.jmx'                       # Название .jmx файла, должно присутствовать в каталоге self.scrFlsLst  
         
@@ -112,6 +113,8 @@ class JMScriptItems:
         self._smplThruVar_ = "Controller"                   # Переменная сквозной нумерации
         self._ifNotRestoreSamplrs_ = False                  # Переменная восстановления оригинальных названий сэмплеров
         self._ifCutUrlInSmpl_ = False                       # Переменная, включающая признак усечения названий сэмплеров
+        self.calcDictRes = {}                               # Словарь волатильности параметров
+        self._ifVolatileParam_ = False                      # Переменная признака волатильности
 
         #self._checkDmpDirExst_()                           # Проверка, что общий каталог для дампов существует
         self.excptHandl = excpt.ExceptHandler()             # Создание объекта класса ExceptHandler
@@ -235,7 +238,7 @@ class JMScriptItems:
         xSet = self._pumpUpXPathToBuild_('nodeProps')
         if self._xTreeRoot_.find(xSet[0]).text != "org.apache.jmeter.testelement.TestPlan":
             logger.error("Wrong root element, class of _xTreeRoot_ is " + self._xTreeRoot_.find(xSet[0]).text)
-            self._msgInfo_ = "Некорректное знач. корня дерева,\n см. лог"
+            self._infoMsg_ = "Некорректное знач. корня дерева,\n см. лог"
         else:
             self._sessDmpDir_()
             self._extrThreadGroupNode_()
@@ -514,7 +517,7 @@ class JMScriptItems:
         tstPlName = self._xTreeRoot_.find(xSet[2]).text
         tmpResLst.append(self._restorOrigCntrlNm_([(self._xTreeRoot_, '--', '--', '--', tstPlName.replace(' ', '%'))], 'TstPl'))
         if tmpResLst.count(-1) != 0:
-            self._msgInfo_ = "Ошибка при восстановлении\nориг. назв. элем. дерева,\nнужно проверить дампы.\nСм. лог"
+            self._infoMsg_ = "Ошибка при восстановлении\nориг. назв. элем. дерева,\nнужно проверить дампы.\nСм. лог"
         else:
             msgText = "Файл с оригинальными(восстан.)\nназв. элементов дерева создан ---" + self.outFileRestrdOrig + "---"
             if (self._ifNotRestoreSamplrs_):
@@ -632,10 +635,10 @@ class JMScriptItems:
             else:
                 self._xmlTree_.write(self.outFileRestrdOrig)
                 self.logger.info("File with original (restored) xml-tree %s created", self.outFileRestrdOrig)
-            self._msgInfo_ = info_msg
+            self._infoMsg_ = info_msg
         except Exception as e:
             self.logger.error('Error while saving XML-tree to file: ' + str(e) + '\n' + str(sys.exc_info()[0]))
-            self._msgInfo_ = "Ошибка при сохранении XML-дерева"
+            self._infoMsg_ = "Ошибка при сохранении XML-дерева"
 
             
 ### Здесь и далее до аналогичного комментария - попытка переписать метода под XML, названия попплывут для удобства
@@ -702,7 +705,7 @@ class JMScriptItems:
         del tmpLinkLst
         self._optimDataDict_()
         self._constrictBkpCl_()
-        self._msgInfo_ = "Сгенерирована коллекция элементов для ThreadGroup\n---" + self._currThrGrNam_ + "---"
+        self._infoMsg_ = "Сгенерирована коллекция элементов для ThreadGroup\n---" + self._currThrGrNam_ + "---"
         self.logger.info("Working collection of elements accumulated")
 ###
             
@@ -1011,6 +1014,7 @@ class JMScriptItems:
         wrkDict[k_s_f[0]][tmpScrInd] = tmpScrData
         del tmpFuncData
         del tmpScrData
+        self.logger.info("New value = " + str(wrkDict[k_s_f[0]][tmpScrInd][1][tmpFuncInd]) + " set in sampler '" + k_s_f[1] + "'")
         print("Новое значение = " + str(wrkDict[k_s_f[0]][tmpScrInd][1][tmpFuncInd]) + " установлено в скрипте '" + k_s_f[1] + "'")
         del tmpScrInd, tmpFuncInd
         del pos
@@ -1086,10 +1090,10 @@ class JMScriptItems:
             del smplr
             self._linksToUpdate_ = tuple()
             self.logger.info("XML-tree successfully updated")
-            self._msgInfo_ = "Текущее XML-дерево успешно обновлено"
+            self._infoMsg_ = "Текущее XML-дерево успешно обновлено"
         else:
             self.logger.info("Attempt to store empty list of changes to XML-tree")
-            self._msgInfo_ = "Изменений в словаре не было - нечего обновлять"
+            self._infoMsg_ = "Изменений в словаре не было - нечего обновлять"
         self._xTreeRoot_ = self._xmlTree_.getroot()
             
     def wrtTreeToFile(self):
@@ -1341,3 +1345,49 @@ class JMScriptItems:
         resStr = self._regExec_(self._regBuild_((regHlpFl[0](tmpPar), regHlpFl[1]), reDtAll=True), tmpStr, grFlagNum=1)
         del tmpStr, resStr, tmpPar
         del tmpLst
+
+## Метод подсчета изменяемости значения параметров
+
+    def calcVolatility(self):
+        if len(self._curDict_.keys()) == 0:
+            self._infoMsg_ = "Не сформирована коллекция.\nНеобходимо аккум. рабочую коллекц."
+            return 0
+        self.calcDictRes = {}
+        tmpLst = []
+        allVals = 0
+        diffVals = 0
+        isVolatile = None
+        for key in self._curDict_.keys():
+            tmpLst.clear()
+            tmpLst = [smplr[1] for cntrl in self._curDict_[key] for smplr in cntrl[1]]
+            allVals = len(tmpLst)
+            diffVals = len(list(set(tmpLst)))
+            if diffVals == 1:
+                isVolatile = False
+                self.calcDictRes[key] = (allVals, isVolatile)
+            else:
+                isVolatile = True
+                if allVals != diffVals:
+                    self.calcDictRes[key] = (abs(round(math.log(allVals) / math.log(diffVals/allVals), 2)), isVolatile)
+                else:
+                    devider = 1
+                    divInt = 1
+                    while (divInt > 0):
+                        devider = devider * 10
+                        divInt = allVals // devider
+                    self.calcDictRes[key] = (abs(round(math.log(allVals ** allVals) / -(1 - allVals / devider), 2)), isVolatile)
+        del tmpLst
+        return 1
+        
+## Метод извлечения волатильности параметров из словаря
+
+    def getVolatilParams(self):
+        if self.calcVolatility() == 0:
+            return 0
+        tmpDct = {prm: val for prm, val in self.calcDictRes.items() if val[1] == self._ifVolatileParam_}
+        if len(tmpDct.keys()) == 0:
+            self._infoMsg_ = "Коллекция не содержит параметров\nс признаком волатильности = " + str(self._ifVolatileParam_)
+            return 0
+        tmpDct = {prm: val for prm, val in sorted(tmpDct.items(), key = lambda item: item[1][0], reverse = True)}
+        self._infoMsg_ = "Сформирована статистика по параметрам;\nс признаком волатильность = " + str(self._ifVolatileParam_)
+        return list(tmpDct.keys())
