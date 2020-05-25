@@ -1,6 +1,6 @@
 # coding: utf8
 
-##Copyright (c) 2019 Лобов Евгений
+##Copyright (c) 2020 Лобов Евгений
 ## <ewhenel@gmail.com>
 ## <evgenel@yandex.ru>
 
@@ -17,7 +17,7 @@
 ##    GNU General Public License for more details.
 ##
 ##    You should have received a copy of the GNU General Public License
-##    along with LRScript_Detail.  If not, see <http://www.gnu.org/licenses/>.
+##    along with JMScript_Detail.  If not, see <http://www.gnu.org/licenses/>.
 ##
 ##  (Этот файл — часть JMScript_Detail.)
 ##
@@ -129,10 +129,49 @@ class JMScriptItems:
         self._infoMsg_ = 'JMScript_Detail (c)'              # Текущее сообщение для вывода пользователю
         self.platf = sys.platform                           # Платформа
         
-        print("\n\n* * * * JMScript_Details (ver. 1.3) * * * *")
+        print("\n\n* * * * JMScript_Details (ver. 4) * * * *")
         print("\n  * * * Класс для сбора и классификации данных сэмплеров JMeter * * *")
         print("\n\n                   Copyright (c) 2019 Лобов Евгений                    \n\n")
 
+## Декоратор для проверки валидности ключа
+    def valid_key(meth):
+        def wrapper(*args, **kwargs):
+            if meth.__name__ == 'setValueByKeyScrFunc':
+                if len(args[0].retEntityByVal(args[2][0])) == 0:
+                    args[0]._infoMsg_ = "Не выбраны (отмечены) значения для изменения.\nТакже см. опцию Все знач."
+                    raise excpt.NoKeyFoundInDict
+                else:
+                    ret = meth(*args)
+            elif (isinstance(args[1], tuple)) and (meth.__name__ != 'setValueByKeyScrFunc'):
+                if len(args[0].retEntityByVal(args[1][0])) == 0:
+                    args[0]._infoMsg_ = "По ключу '" + args[1][0] + "' ничего не найдено.\nВозможно не отмечена опция Автовыбор"
+                    raise excpt.NoKeyFoundInDict
+                else:
+                    ret = meth(*args, **kwargs)
+            elif (isinstance(args[1], str)) and (meth.__name__ != 'setValueByKeyScrFunc'):
+                if len(args[0].retEntityByVal(args[1])) == 0:
+                    args[0]._infoMsg_ = "По ключу '" + args[1] + "' ничего не найдено.\nВозможно не отмечена опция Автовыбор"
+                    raise excpt.NoKeyFoundInDict
+                else:
+                    ret = meth(*args, **kwargs)
+            elif not (isinstance(args[1], str)) and not (isinstance(args[1], tuple)):
+                args[0].logger.error("Unknown item '" + str(args) + "' passed to meth '" + meth.__name__ + "'") 
+                raise excpt.UnknownStructItem
+            else:
+                pass
+            return ret
+        return wrapper
+        
+## Декоратор для проверки возвращаемого списка по переданным условиям
+    def valid_request_params(meth):
+        def wrapper(*args, **kwargs):
+            res = meth(*args, **kwargs)
+            if len(res) == 0:
+                args[0]._infoMsg_ = "По заданным значениям '" + str(tuple(args[1])) + "'\nв коллекции ничего не найдено.\nПроверьте корректность значений\nи/или опцию Автовыбор"
+                raise excpt.NoDataInDictsWithFilter
+            else:
+                return res
+        return wrapper
 		
 ## Необработанные исключения перенаправляются в логгер
     def _unhandledExcept_(self, exc_type, exc_value, exc_traceback):
@@ -695,10 +734,10 @@ class JMScriptItems:
             prntThGrNm = self._ancstNode_.find(xSet[2]).text
             prntThGrCl = self._ancstNode_.find(xSet[1]).text
             self._storeOrigXElm_(j, prntThGrNm, prntSmplrCl, prntSmplrNm, prntSmplr.text)
-            tmpLinkLst = [self._curLinkDict_[p].append((prntThGrNm, (prntSmplrNm, None))) for p in self._curLinkList_ if p==j.find(xSet_1[0]).text]
+            tmpLinkLst = [self._curLinkDict_[p].append((prntThGrNm, (prntSmplrNm, None, 0))) for p in self._curLinkList_ if p==j.find(xSet_1[0]).text]
             jArgsLst = [l for l in j.find(xSet_2[0]).find(xSet_2[0]).find(xSet_3[0]).findall(xSet_4[0])]
             for z in jArgsLst:
-                tmpLst=[self._curDict_[k].append((prntThGrNm, (prntSmplrNm,z.find(xSet_6[0]).text))) for k in self._curList_ if k == z.find(xSet_5[0]).text]
+                tmpLst=[self._curDict_[k].append((prntThGrNm, (prntSmplrNm, z.find(xSet_6[0]).text, 0))) for k in self._curList_ if k == z.find(xSet_5[0]).text]
             
         del tmpLst
         del resDtTmp
@@ -898,6 +937,7 @@ class JMScriptItems:
 ## None значения для ссылок означают, что изменения для данных функций и скриптов не менялись
 ## Необходимо следить за значением 'Entity' перед запуском - может вернуть запись не из того словаря
 
+    @valid_key
     def getDataDictItem(self, key_link):
         pos = self._ifKeyNoneSinge_(key_link)
         print(self.retEntityByVal(key_link))
@@ -913,6 +953,7 @@ class JMScriptItems:
 ## Метод получения списка всех скриптов (с указанием названия функций при установленном флаге 'funcFlag')
 ## где используется, переданный в параметре, ключ 'keyName'
 
+    @valid_key
     def getScrListByKey(self, key_link, funcFlag = True):
         pos = self._ifKeyNoneSinge_(key_link)
         self.setEntity(self.retEntityByVal(key_link)[pos])
@@ -942,6 +983,8 @@ class JMScriptItems:
 ## Метод получения списка всех скриптов (с указанием названия функций при установленном флаге 'funcFlag')
 ## где используется заданный ключ с определенным значением - вх. параметер '*keyValue' (картеж вида (key, value))
 
+    @valid_key
+    @valid_request_params
     def getScrFuncByKeyValue(self, *keyValue, funcFlag = True):
         k_val = keyValue[0]
         pos = self._ifKeyNoneSinge_(k_val[0])
@@ -963,6 +1006,8 @@ class JMScriptItems:
 ## Метод получения значения по ключу, названию скрипта, названию функции - 
 ## вх. параметер '*keyScrFunc' (картеж вида (key, script, funcName))
 
+    @valid_key
+    @valid_request_params
     def getValueByKeyScrFunc(self, *keyScrFunc):
         k_s_f = keyScrFunc[0]
         pos = self._ifKeyNoneSinge_(k_s_f[0])
@@ -974,7 +1019,7 @@ class JMScriptItems:
         else:
             wrkDict = self._curLinkDict_
         del pos
-        return [[v[1] for v in q[1] if v[0]==k_s_f[2]].pop(0) for q in wrkDict[k_s_f[0]] if q[0] == k_s_f[1]].pop(0)
+        return [fl for itm in [[(q[0], ((v),)) for v in q[1] if v[0]==k_s_f[2]] for q in wrkDict[k_s_f[0]] if q[0] == k_s_f[1]] for fl in itm]
 
     def getAllSbmFuncFromScr(self, scrName):
         return None
@@ -983,6 +1028,7 @@ class JMScriptItems:
 ## вх. параметер '*keyScrFunc' (картеж вида (key, script, funcName))
 ## новое значение - вх. параметер 'newVal'
 
+    @valid_key
     def setValueByKeyScrFunc(self, newVal, *keyScrFunc):
         k_s_f = keyScrFunc[0]
         pos = self._ifKeyNoneSinge_(k_s_f[0])
@@ -1004,7 +1050,7 @@ class JMScriptItems:
         tmpScrData = wrkDict[k_s_f[0]][tmpScrInd]
         tmpFuncData = wrkDict[k_s_f[0]][tmpScrInd][1]
         tmpFuncDataLst = [y for y in tmpFuncData]
-        tmpFuncDataLst[tmpFuncInd] = (wrkDict[k_s_f[0]][tmpScrInd][1][tmpFuncInd][0], newVal)
+        tmpFuncDataLst[tmpFuncInd] = (wrkDict[k_s_f[0]][tmpScrInd][1][tmpFuncInd][0], newVal, 1)
         tmpFuncData = tuple(tmpFuncDataLst)
         del tmpFuncDataLst
         tmpScrDataLst = [z for z in tmpScrData]
@@ -1014,8 +1060,8 @@ class JMScriptItems:
         wrkDict[k_s_f[0]][tmpScrInd] = tmpScrData
         del tmpFuncData
         del tmpScrData
-        self.logger.info("New value = " + str(wrkDict[k_s_f[0]][tmpScrInd][1][tmpFuncInd]) + " set in sampler '" + k_s_f[1] + "'")
-        print("Новое значение = " + str(wrkDict[k_s_f[0]][tmpScrInd][1][tmpFuncInd]) + " установлено в скрипте '" + k_s_f[1] + "'")
+        self.logger.info("New value = " + str(wrkDict[k_s_f[0]][tmpScrInd][1][tmpFuncInd][:2]) + " set in controller '" + k_s_f[1] + "'")
+        print("Новое значение = " + str(wrkDict[k_s_f[0]][tmpScrInd][1][tmpFuncInd][:2]) + " установлено в контроллере '" + k_s_f[1] + "'")
         del tmpScrInd, tmpFuncInd
         del pos
         self._storeLinkFromSet_(k_s_f)
@@ -1079,11 +1125,11 @@ class JMScriptItems:
                 if lnk[3] == 'd':
                     tstElmArgs = smplr.find(xSet_1[0]).find(xSet_1[0]).find(xSet_2[0]).findall(xSet_0[0])
                     arg = [argN for argN in tstElmArgs if argN.find(xSet_3[0]).text == lnk[0]].pop(0)
-                    strToInsert = self.getValueByKeyScrFunc(lnk)
+                    strToInsert = self.getValueByKeyScrFunc(lnk)[0][1][0][1]
                     arg.find(xSet_4[0]).text = strToInsert
                     del tstElmArgs
                 elif lnk[3] == 'l':
-                    strToInsert = self.getValueByKeyScrFunc(lnk)
+                    strToInsert = self.getValueByKeyScrFunc(lnk)[0][1][0][1]
                     smplr.find(xSet_5[0]).text = strToInsert
             del tmpLst
             del nestSmplrs
@@ -1391,3 +1437,32 @@ class JMScriptItems:
         tmpDct = {prm: val for prm, val in sorted(tmpDct.items(), key = lambda item: item[1][0], reverse = True)}
         self._infoMsg_ = "Сформирована статистика по параметрам;\nс признаком волатильность = " + str(self._ifVolatileParam_)
         return list(tmpDct.keys())
+        
+## Метод определения пользовательской правки параметров
+
+    def editnIndicatInParams(self, key, controller = None, sampler = None):
+        cntAll = 0
+        cntEdtd = 0
+        tmpLst = self.getDataDictItem(key)
+        tmpIntersctLst = [itm for itm in tmpLst if itm[0] == controller]
+        tmpLst = tmpIntersctLst if any(tmpIntersctLst) else tmpLst
+        for cntrl in tmpLst:
+            for smplr in cntrl[1]:
+                if smplr[0] == sampler:
+                    cntAll = 1
+                    cntEdtd = smplr[2]
+                    break
+                cntAll += 1
+                if smplr[2] == 1:
+                    cntEdtd += 1
+        try:
+            res = cntEdtd / cntAll
+            if res == 0:
+                return "new"
+            elif res == 1:
+                return "edited"
+            else:
+                return "inProgress"
+        except ZeroDivisionError:
+            self.logger.error("Empty samplers list for controller. Check XML-tree.")
+            raise excpt.NoneSamplersInController

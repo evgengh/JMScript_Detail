@@ -1,4 +1,4 @@
-##Copyright (c) 2019 Лобов Евгений
+##Copyright (c) 2020 Лобов Евгений
 ## <ewhenel@gmail.com>
 ## <evgenel@yandex.ru>
 
@@ -15,7 +15,7 @@
 ##    GNU General Public License for more details.
 ##
 ##    You should have received a copy of the GNU General Public License
-##    along with LRScript_Detail.  If not, see <http://www.gnu.org/licenses/>.
+##    along with JMScript_Detail.  If not, see <http://www.gnu.org/licenses/>.
 ##
 ##  (Этот файл — часть JMScript_Detail.)
 ##
