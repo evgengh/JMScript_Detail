@@ -718,14 +718,6 @@ class JMScriptUsrApi(tk.Frame):
         tmpChkLst.config(header = True, width = widthFrInSymb, height = heightTstInSymb, borderwidth=1)            
         tmpChkLst.header_create(col = 0, itemtype = tk.TEXT, text = self.jmscdObj._selctdKey_)
         self.chkBtnTst = tk.Checkbutton(tmpChkLst, command = self.testCmd, variable = self.dctItmsVar)
-        ###if isinstance(itmCllctn, str):
-        ###    self.chkBtnTst.config(text = "Нет данных", state = tk.DISABLED)
-        ###    self.chkBtnTst.deselect()
-        ###    tmpChkLst.add('dctItm_0', itemtype = tk.WINDOW, window = self.chkBtnTst)
-        ###    curEntr = '%s_%s' % ('dctItm', '1')
-        ###    exec('tmpChkLst.add(eval("curEntr"), itemtype = tk.IMAGETEXT, data = curEntr, text = itmCllctn, style = self.styles["new"], state = tk.DISABLED)')
-        ###    self.tstOutText.window_create(tk.END, window = self.dctItmsChkLst, align = tk.TOP)
-        ###    return 0
         self.chkBtnTst.config(text = "Авто выбор/Все знач.")
         tmpChkLst.add('dctItm_0', itemtype = tk.WINDOW, window = self.chkBtnTst)
         entrCnt = 0
