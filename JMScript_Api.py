@@ -1,10 +1,10 @@
 # coding: utf8
 
-##Copyright (c) 2019 Лобов Евгений
+##Copyright (c) 2020 Лобов Евгений
 ## <ewhenel@gmail.com>
 ## <evgenel@yandex.ru>
 
-## This file is part of LRScript_Detail.
+## This file is part of JMScript_Detail.
 ##
 ##    JMScript_Detail is free software: you can redistribute it and/or modify
 ##    it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 ##    GNU General Public License for more details.
 ##
 ##    You should have received a copy of the GNU General Public License
-##    along with LRScript_Detail.  If not, see <http://www.gnu.org/licenses/>.
+##    along with JMScript_Detail.  If not, see <http://www.gnu.org/licenses/>.
 ##
 ##  (Этот файл — часть JMScript_Detail.)
 ##
@@ -65,7 +65,7 @@ def class_meth_decor(cls):
         if hasattr(attrValue, '__call__') and type(attrValue).__name__ == 'function':
             setattr(cls, attrName, catch_except(attrValue))
     return cls
-
+    
 @class_meth_decor
 class JMScriptUsrApi(tk.Frame):
 
@@ -99,6 +99,7 @@ class JMScriptUsrApi(tk.Frame):
         self._varRbSmplThruNum_.set("Controller")
         self._varCbIfNotRstrUnqInSmpl_ = tk.BooleanVar()
         self._varCbIfNotRstrUnqInSmpl_.set(False)
+        self.styles = {}
 
         self._initText_ = """Перед работой с прилож.\n
 		ознакомтесь с инструкцией.\n
@@ -111,6 +112,21 @@ class JMScriptUsrApi(tk.Frame):
         self._consHandlerInit_()
         self.excptHandl.logger = self.logger
         self._logOffset_ = 0
+        
+## Декоратор для проверки существования виджета типа CheckList
+    def wdgChkLst_exists(messg):
+        def decorator(meth):
+            def wrapper(*args):
+                def printMessage():
+                    args[0].txtWdgtDelete(True)
+                    args[0].txtWdgtInsert(messg)
+                if (hasattr(args[0], 'dctItmsChkLst')):
+                    ret = meth(*args)
+                else:
+                    ret = printMessage()
+                return ret
+            return wrapper
+        return decorator
 
 ## Определение логгера
     def _loggerInit_(self):
@@ -291,7 +307,10 @@ class JMScriptUsrApi(tk.Frame):
         self._lbFrPileOptns_ = self.getSubWgts(self.frPileOptns, tk._dummyLabel)
         self._lbFrPileOptns_.config(text = 'Получ. осн. колл.')
         self._frPileOptns_ = self.getSubWgts(self.frPileOptns, tk._dummyFrame)
-        self.lsbxPileMCllct = tk.Listbox(self._frPileOptns_, height = 4, width = 34)
+        self.scrollPileMCllt = tk.Scrollbar(self._frPileOptns_, orient = tk.VERTICAL)
+        self.scrollPileMCllt.pack(side = tk.RIGHT, fill = 'y')
+        self.lsbxPileMCllct = tk.Listbox(self._frPileOptns_, height = 4, width = 34, yscrollcommand = self.scrollPileMCllt.set)
+
         for itm in range(4):
             self.lsbxPileMCllct.insert(tk.END, '--')
             
@@ -300,6 +319,8 @@ class JMScriptUsrApi(tk.Frame):
         self.lsbxPileMCllct.pack(side = tk.TOP)
         self.btPileMCllct.pack(side = tk.TOP)
         self.frPileOptns.pack(side = tk.LEFT)
+        
+        self.scrollPileMCllt.config(command = self.lsbxPileMCllct.yview)
         
         self.frOutRslts = tk.LabelFrame(self.mCllctnFrame)
         self._lbFrOutRslts_ = self.getSubWgts(self.frOutRslts, tk._dummyLabel)
@@ -512,13 +533,13 @@ class JMScriptUsrApi(tk.Frame):
         self.jmscdObj.extrHTTPDataNamesAndLinks()
         self.txtWdgtDelete(False)
         self.txtWdgtInsert(self.jmscdObj._infoMsg_)
-        
+
+    @wdgChkLst_exists("Невозможно выбрать значение из списка!\nСписок не сформирован, либо некорректен.")
     def prcdGetDataDictItem(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
         if (self.ifChkLstRadio()):
             self.vlGetDataDictItem.delete(0, tk.END)
             entryDict = self.entryFillVal()
-            print(entryDict)
             self.vlGetDataDictItem.insert(0, entryDict["key"])
         try:
             tmpVal = self.jmscdObj.getDataDictItem(self.vlGetDataDictItem.get())
@@ -526,10 +547,13 @@ class JMScriptUsrApi(tk.Frame):
             self.crtChkLstItms(tmpVal)
             self.btSetValsToSlctn.config(state = tk.NORMAL)
             del tmpVal
-        except IndexError:
-            self.crtChkLstItms(['Некорректное значение сущности'])
+        except excpt.NoKeyFoundInDict:
+            self.txtWdgtDelete(True)
+            self.txtWdgtInsert(self.jmscdObj._infoMsg_)
+            ##self.crtChkLstItms(['Некорректное значение сущности'])
             self.btSetValsToSlctn.config(state = tk.DISABLED)
-        
+    
+    @wdgChkLst_exists("Невозможно выбрать значение из списка!\nСписок не сформирован, либо некорректен.")    
     def prcdGetScrLstByNm(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
         if (self.ifChkLstRadio()):
@@ -541,11 +565,13 @@ class JMScriptUsrApi(tk.Frame):
             self.jmscdObj._selctdKey_ = self.vlGetScrLstByNm.get()
             self.crtChkLstItms(tmpVal, ifRadio = True)
             del tmpVal
-        except IndexError:
-            self.crtChkLstItms(['Некорректное значение сущности'])
+        except excpt.NoKeyFoundInDict:
+            self.txtWdgtDelete(True)
+            self.txtWdgtInsert(self.jmscdObj._infoMsg_)
         finally:
             self.btSetValsToSlctn.config(state = tk.DISABLED)
-        
+    
+    @wdgChkLst_exists("Невозможно выбрать значение из списка!\nСписок не сформирован, либо некорректен.")    
     def prcdGetScrFncByKeyVal(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
         if (self.ifChkLstRadio()):
@@ -561,13 +587,16 @@ class JMScriptUsrApi(tk.Frame):
             self.crtChkLstItms(tmpVal, ifRadio = True)
             del tmpVal
             del tmpTpl
-        except IndexError:
-            self.crtChkLstItms(['Некорректное значение сущности'])
-        except excpt.CollectKeyValError:
-            self.crtChkLstItms(['Ничего не найдено\nс таким знач. парам.'])
+        except excpt.NoKeyFoundInDict:
+            self.txtWdgtDelete(True)
+            self.txtWdgtInsert(self.jmscdObj._infoMsg_)
+        except excpt.NoDataInDictsWithFilter:
+            self.txtWdgtDelete(True)
+            self.txtWdgtInsert(self.jmscdObj._infoMsg_)
         finally:
             self.btSetValsToSlctn.config(state = tk.DISABLED)
         
+    @wdgChkLst_exists("Невозможно выбрать значение из списка!\nСписок не сформирован, либо некорректен.")
     def prcdGetValByKSF(self):
         self.jmscdObj.setEntity(self.entStrVar.get())
         if (self.ifChkLstRadio()):
@@ -582,13 +611,16 @@ class JMScriptUsrApi(tk.Frame):
             tmpTpl = (self.vlGetValByKSF.get(), self.ctGetValByKSF.get(), self.smGetValByKSF.get())
             tmpVal = self.jmscdObj.getValueByKeyScrFunc(tmpTpl)
             self.jmscdObj._selctdKey_ = self.vlGetValByKSF.get()
-            self.crtChkLstItms([(self.ctGetValByKSF.get(), ((self.smGetValByKSF.get(), tmpVal),))])
+            self.crtChkLstItms(tmpVal)
             self.btSetValsToSlctn.config(state = tk.NORMAL)
             del tmpVal
             del tmpTpl
-        except IndexError:
-            self.crtChkLstItms(['Некорректное значение сущности,\nлибо в коллекции не найдено совпадений\nкл.-кнтр.-смпл.'])
-            self.btSetValsToSlctn.config(state = tk.DISABLED)
+        except excpt.NoKeyFoundInDict:
+            self.txtWdgtDelete(True)
+            self.txtWdgtInsert(self.jmscdObj._infoMsg_)
+        except excpt.NoDataInDictsWithFilter:
+            self.txtWdgtDelete(True)
+            self.txtWdgtInsert(self.jmscdObj._infoMsg_)
         
     def testCmd(self):
         tmpChkLst = self.getSubWgts(self.dctItmsChkLst, tk._dummyHList)
@@ -609,9 +641,17 @@ class JMScriptUsrApi(tk.Frame):
         if self.varRBtLstKeys.get() == 1:
             self.jmscdObj._selctdKey_ = 'Все парам.'
             self.crtChkLstItms(self.jmscdObj._curList_, ifRadio = True)
+            if len(self.jmscdObj._curList_) == 0:
+                self.jmscdObj.infoMsg = "Список ключей пуст!\nВозможно не сгенерированы рабочие коллекц."
+                self.txtWdgtDelete(False)
+                self.txtWdgtInsert(self.jmscdObj.infoMsg)
         elif self.varRBtLstKeys.get() == 2:
             self.jmscdObj._selctdKey_ = 'Все ссылки'
             self.crtChkLstItms(self.jmscdObj._curLinkList_, ifRadio = True)
+            if len(self.jmscdObj._curLinkList_) == 0:
+                self.jmscdObj.infoMsg = "Список ссылок пуст!\nВозможно не сгенерированы рабочие коллекц."
+                self.txtWdgtDelete(False)
+                self.txtWdgtInsert(self.jmscdObj.infoMsg)
         else:
             raise Exception           
             
@@ -628,7 +668,15 @@ class JMScriptUsrApi(tk.Frame):
         else:
             newVal = self.entSetValsToSlctn.get()
         tmpChkLst = self.getChckLstSel()
-        [self.jmscdObj.setValueByKeyScrFunc(newVal,(self.jmscdObj._selctdKey_,cntrl[0],prm[0])) for cntrl in tmpChkLst for prm in cntrl[1]]
+        try:
+            if len(tmpChkLst) == 0:
+                self.jmscdObj.setValueByKeyScrFunc(newVal, ("<знач. ключа>", "<назв. контрлр.>", "<назв. сэмплр.>"))
+            else:
+                [self.jmscdObj.setValueByKeyScrFunc(newVal, (self.jmscdObj._selctdKey_,cntrl[0],prm[0])) for cntrl in tmpChkLst for prm in cntrl[1]]
+        except excpt.NoKeyFoundInDict:
+            self.txtWdgtDelete(True)
+            self.txtWdgtInsert(self.jmscdObj._infoMsg_)
+            return 0
         self._selctdItemsLst_.clear()
         self.jmscdObj.infoMsg = "Измен. добавлены в дерево,\nпосле обнов. будут видны\nпри работе с парам."
         self.txtWdgtDelete(True)
@@ -657,6 +705,9 @@ class JMScriptUsrApi(tk.Frame):
         self.dctItmsVar = tk.BooleanVar()
         self.dctItmsVar.set(not ifRadio)
         tmpChkLst = self.getSubWgts(self.dctItmsChkLst, tk._dummyHList)
+        self.styles["new"] = tk.DisplayStyle(itemtype = tk.IMAGETEXT, refwindow = tmpChkLst)
+        self.styles["edited"] = tk.DisplayStyle(itemtype = tk.IMAGETEXT, refwindow = tmpChkLst, fg = '#CC4125')
+        self.styles["inProgress"] = tk.DisplayStyle(itemtype = tk.IMAGETEXT, refwindow = tmpChkLst, fg = '#38761D')
         if (self.jmscdObj.platf.startswith('linux')):
             widthFrInSymb = int(self.tstOutText.winfo_width() / 7 - 3)
         elif (self.jmscdObj.platf.startswith('win')):
@@ -664,21 +715,33 @@ class JMScriptUsrApi(tk.Frame):
         else:
             widthFrInSymb = int(self.tstOutText.winfo_width() / 7 - 3)
         heightTstInSymb = int(round(self.tstOutText.cget("height") / 2, 0))
-        tmpChkLst.config(header = True, width = widthFrInSymb, height = heightTstInSymb, borderwidth=1)
+        tmpChkLst.config(header = True, width = widthFrInSymb, height = heightTstInSymb, borderwidth=1)            
         tmpChkLst.header_create(col = 0, itemtype = tk.TEXT, text = self.jmscdObj._selctdKey_)
         self.chkBtnTst = tk.Checkbutton(tmpChkLst, command = self.testCmd, variable = self.dctItmsVar)
+        ###if isinstance(itmCllctn, str):
+        ###    self.chkBtnTst.config(text = "Нет данных", state = tk.DISABLED)
+        ###    self.chkBtnTst.deselect()
+        ###    tmpChkLst.add('dctItm_0', itemtype = tk.WINDOW, window = self.chkBtnTst)
+        ###    curEntr = '%s_%s' % ('dctItm', '1')
+        ###    exec('tmpChkLst.add(eval("curEntr"), itemtype = tk.IMAGETEXT, data = curEntr, text = itmCllctn, style = self.styles["new"], state = tk.DISABLED)')
+        ###    self.tstOutText.window_create(tk.END, window = self.dctItmsChkLst, align = tk.TOP)
+        ###    return 0
         self.chkBtnTst.config(text = "Авто выбор/Все знач.")
         tmpChkLst.add('dctItm_0', itemtype = tk.WINDOW, window = self.chkBtnTst)
         entrCnt = 0
         for lnNum in range(len(itmCllctn)):
-            for entr in itmCllctn[lnNum][1]:
+            if not (isinstance(itmCllctn[lnNum], tuple)):
                 entrCnt += 1
-                indx = '%d.%d' % (entrCnt, 0)
-                curEntr = '%s_%s' % ('dctItm', str(entrCnt))
-                entrTxt = (itmCllctn[lnNum][0] + ': ' + str(entr)) if isinstance(itmCllctn[lnNum], tuple) else itmCllctn[lnNum]
-                entrVal = (itmCllctn[lnNum][0], ((entr),)) if isinstance(itmCllctn[lnNum], tuple) else itmCllctn[lnNum]
-                self._selctdItemsLst_.append((curEntr, entrVal))
-                exec('tmpChkLst.add(eval("curEntr"), itemtype = tk.IMAGETEXT, data = curEntr, text = entrTxt)')
+                entrTxt = itmCllctn[lnNum]
+                entrVal = itmCllctn[lnNum]
+                self.chkLstAdd(tmpChkLst, entrCnt, entrTxt, entrVal)
+            else:
+                for entr in itmCllctn[lnNum][1]:
+                    entrCnt += 1
+                    tmpVar = entr[:2] if isinstance(entr, tuple) else entr
+                    entrTxt = (itmCllctn[lnNum][0] + ': ' + str(tmpVar))
+                    entrVal = (itmCllctn[lnNum][0], ((entr),))
+                    self.chkLstAdd(tmpChkLst, entrCnt, entrTxt, entrVal)
         self.tstOutText.window_create(tk.END, window = self.dctItmsChkLst, align = tk.TOP)
         tmpIfMode = 'off' if (ifRadio) else 'on'
         for i in tmpChkLst.info_children():
@@ -687,6 +750,25 @@ class JMScriptUsrApi(tk.Frame):
         del tmpChkLst
         del tmpIfMode
         self.logger.info("Checklist of dictionary entries created in Text Widget")
+        return 0
+        
+    def chkLstAdd(self, chkList, entryNum, entryTxt, entryVal):
+        res = "new"
+        if self.jmscdObj._selctdKey_ in ("Все парам.", "Все ссылки", "Статистика"):
+            res = self.jmscdObj.editnIndicatInParams(entryVal)
+        else:
+            if not isinstance(entryVal, tuple):
+                res = self.jmscdObj.editnIndicatInParams(self.jmscdObj._selctdKey_, entryVal)
+            else:
+                if not isinstance(entryVal[1][0], tuple):
+                    res = self.jmscdObj.editnIndicatInParams(self.jmscdObj._selctdKey_, entryVal[0], entryVal[1][0])
+                elif len(entryVal[1][0]) < 3:
+                    res = self.jmscdObj.editnIndicatInParams(self.jmscdObj._selctdKey_, entryVal[0], entryVal[1][0][0])
+                else:
+                    res = "new" if entryVal[1][0][2] == 0 else "edited"
+        curEntr = '%s_%s' % ('dctItm', str(entryNum))
+        self._selctdItemsLst_.append((curEntr, entryVal))
+        exec('chkList.add(eval("curEntr"), itemtype = tk.IMAGETEXT, data = curEntr, text = entryTxt, style = self.styles[res])')
         
     def prcdUpdtXMLTree(self):
         self.jmscdObj.updateXMLTree()
