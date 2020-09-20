@@ -47,6 +47,7 @@ import urllib
 import datetime
 import pickle
 import logging
+import functools
 import xml.etree.ElementTree as ET
 import urllib.parse as urlpars
 import exceptionHandler as excpt
@@ -460,56 +461,39 @@ class JMScriptItems:
         del tmpLst
         while((upprNodeClass!=None) and (upprNodeClass!=self._getNodeClass_(self._ancstNode_["elem"]))):
             self._extrParntNodes_(self._ancstNode_["elem"], upprNodeClass)
-        
+            
     def _getNodeElemTag_(self, hashTr):
+        return self._getNodeElem_('hashTree', hashTr)
+        
+    def _getNodeElemHashTree_(self, nodeTag):
+        return self._getNodeElem_('elem', nodeTag)
+            
+    @functools.lru_cache(maxsize = None)        
+    def _getNodeElem_(self, itmType, item):
         xSet = self._pumpUpXPathToBuild_('all_hashTrees')
         xSet_1 = self._pumpUpXPathToBuild_('dirChldNode')
+        xSet_2 = self._pumpUpXPathToBuild_('all_nestNodes_cls')
         hostHashTr = None
-        if hashTr == self._xTreeRoot_["hashTree"]:
+        if item == self._xTreeRoot_[itmType]:
             hostHashTr = self._xmlTree_.getroot().find(xSet[1])
         else:
             hashTrLst = self._xTreeRoot_["hashTree"].findall(xSet[0])
             hashTrLst.insert(0, self._xTreeRoot_["hashTree"])
             shiftPos = 0
             tmpLst = []
-            while (tmpLst.count(hashTr) < 1):
+            while (tmpLst.count(item) < 1):
                 hostHashTr = hashTrLst[shiftPos]
-                tmpLst = hostHashTr.findall(xSet[1])
+                tmpLst = hostHashTr.findall(xSet[1]) if itmType == 'hashTree' else hostHashTr.findall(xSet_2[1])
                 shiftPos += 1
+                ###Needs to be debugged due to it seems there are xcesive calls when extr threadgroups
             del tmpLst
         tmpLstSiblElms = hostHashTr.findall(xSet_1[0])
         try:
-            return tmpLstSiblElms[tmpLstSiblElms.index(hashTr) - 1]
+            return tmpLstSiblElms[tmpLstSiblElms.index(item) - 1] if itmType == 'hashTree' else tmpLstSiblElms[tmpLstSiblElms.index(item) + 1]
         except:
-            self.logger.error("Got error while retrieving tag for hashTree: ", str(sys.exc_info()[0]))
+            self.logger.error("Got error while retrieving item for " + itmType , str(sys.exc_info()[0]))
             return None
             
-    def _getNodeElemHashTree_(self, nodeTag):
-        xSet = self._pumpUpXPathToBuild_('all_hashTrees')
-        xSet_1 = self._pumpUpXPathToBuild_('all_nestNodes_cls')
-        xSet_2 = self._pumpUpXPathToBuild_('dirChldNode')
-        hostHashTr = None
-        if nodeTag == self._xTreeRoot_["elem"]:
-            hostHashTr = self._xmlTree_.getroot().find(xSet[1])
-        else:
-            hashTrLst = self._xTreeRoot_["hashTree"].findall(xSet[0])
-            hashTrLst.insert(0, self._xTreeRoot_["hashTree"])
-            shiftPos = 0
-            tmpLst = []
-            while (tmpLst.count(nodeTag) < 1):
-                hostHashTr = hashTrLst[shiftPos]
-                tmpLst = hostHashTr.findall(xSet_1[1])
-                shiftPos = shiftPos + 1
-                ###Needs to be debugged due to it seems there are xcesive calls when extr threadgroups
-                ###print(nodeTag)
-                ###print(tmpLst)
-            del tmpLst
-        tmpLstSiblElms = hostHashTr.findall(xSet_2[0])
-        try:
-            return tmpLstSiblElms[tmpLstSiblElms.index(nodeTag) + 1]
-        except:
-            self.logger.error("Got error while retrieving tag for hashTree: ", str(sys.exc_info()[0]))
-            return None
             
 ## Метод извлечения хостового нода для свойств и т.д.
 

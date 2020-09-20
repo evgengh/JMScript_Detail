@@ -42,6 +42,7 @@ import sys
 import functools
 import logging
 import traceback
+import time
 from tkinter import tix as tk
 import JMScript_Detail as jmscd
 import exceptionHandler as excpt
@@ -507,7 +508,6 @@ class JMScriptUsrApi(tk.Frame):
         self.txtWdgtDelete(False)
         self.jmscdObj._smplThruVar_ = self._varRbSmplThruNum_.get()
         self.jmscdObj.xmlTreeStructToUnqNams()
-        ##
         self.lsbxPileMCllct.delete(0, tk.END)
         for itm in self.jmscdObj._thrGrpLst_:
             self.lsbxPileMCllct.insert(tk.END, itm[4])
