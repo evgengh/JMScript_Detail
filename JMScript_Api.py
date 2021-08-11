@@ -798,13 +798,55 @@ class JMScriptUsrApi(tk.Frame):
         self.txtWdgtInsert(self.jmscdObj._infoMsg_)
 
     def test(self):
-        print(self.jmscdObj._curLinkDict_.get('/register')[0][1][0][0])
-        self.jmscdObj._extrHostNode_(self.jmscdObj._curLinkDict_.get('/register')[0][1][0][0])
-        self.jmscdObj._extrParntNodes_(self.jmscdObj._currNode_['elem'])
-        xSet = self.jmscdObj._pumpUpXPathToBuild_('nodesWithName')
-        print(xSet)
-        print(self.jmscdObj._ancstNode_['elem'])
+        tmpLst = []
+        coll = []
+        with open('out.csv', 'r', encoding = 'utf-8') as fObj:
+            coll = fObj.readlines()
+        coll = {k:v for k,v in [tuple(itm.split(',')) for itm in coll]}
+        print(len(self.jmscdObj._curLinkDict_.get('/register')))
+        print(len(self.jmscdObj._curLinkDict_.get('/history/sync')))
+        print(self.jmscdObj._xTreeLocalRoot_['elem'].attrib)
+        baseOper = 'stats/mc/action'
+        if (len(self.jmscdObj._curLinkDict_.get(baseOper)) > 1):
+            print("Невозможно использовать выбранный сэмплер в качестве baseline.\nБолее одного значения в словаре")
+            return None
+        print(self.jmscdObj.getScrListByKey(baseOper, funcFlag=True))
+        baseSmplr = self.jmscdObj.getScrListByKey(baseOper, funcFlag=True)[0][1][0]
+        self.jmscdObj._extrHostNode_(baseSmplr)
+        print(self.jmscdObj._currNode_['elem'].attrib)
+        self.jmscdObj._extrParntNodes_(self.jmscdObj._currNode_['elem'], 'ThreadGroup', True)
         print(self.jmscdObj._ancstNode_['elem'].attrib)
+        tmpLst = [self.jmscdObj._getNodeName_(itm['elem']) for itm in self.jmscdObj.ancstNodeChain if self.jmscdObj._getNodeClass_(itm['elem']) == 'ThroughputController']
+        print(tmpLst)
+        thrptDepth = len(tmpLst)
+        print(thrptDepth)
+        xSet_1 = self.jmscdObj._pumpUpXPathToBuild_('dirChldNode')
+        xpthLstTmp = []
+        xpthLstTmp.append(self.jmscdObj._pumpUpXPathToBuild_('dirChldNode'))
+        self.jmscdObj._xPathUsrParam_.append('FloatProperty')
+        xSetStr = self.jmscdObj._xPthBuild_(*xpthLstTmp)
+        self.jmscdObj._xPathUsrParam_.append('value')
+        xSetStr_1 = self.jmscdObj._xPthBuild_(*xpthLstTmp)
+        for itm in tmpLst:
+            self.jmscdObj._extrHostNode_(itm)
+            self.jmscdObj._currNode_["elem"].find(xSetStr).find(xSetStr_1).text = '86.56'
+        self.jmscdObj.updateXMLTree()
+        self.jmscdObj.xmlTreeToFile()
+        #print([self.jmscdObj._extrHostNode_(itm) for itm in tmpLst])
+        # self.jmscdObj._xPathUsrParam_.append(baseSmplr)
+        # tmpLst.append(self.jmscdObj._pumpUpXPathToBuild_('nodesWithName'))
+        # xSetStr = self.jmscdObj._xPthBuild_(*tmpLst)
+        # print(xSetStr)
+        # print(self.jmscdObj._xTreeLocalRoot_['elem'].attrib)
+        # parentHashTree = self._xTreeLocalRoot_["hashTree"].find(xSetStr)
+        # parentElemTag = self._getNodeElemTag_(parentHashTree)
+        # print(self.jmscdObj._curLinkDict_.get('/register')[0][1][0][0])
+        # self.jmscdObj._extrHostNode_(self.jmscdObj._curLinkDict_.get('/register')[0][1][0][0])
+        # self.jmscdObj._extrParntNodes_(self.jmscdObj._currNode_['elem'])
+        # xSet = self.jmscdObj._pumpUpXPathToBuild_('nodesWithName')
+        # print(xSet)
+        # print(self.jmscdObj._ancstNode_['elem'])
+        # print(self.jmscdObj._ancstNode_['elem'].attrib)
 
     def txtWdgtInsert(self, text, *tags):
         self._txtBegin_ = 0.0

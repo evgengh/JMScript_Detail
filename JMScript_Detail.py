@@ -48,6 +48,7 @@ import datetime
 import pickle
 import logging
 import functools
+from collections import deque
 import xml.etree.ElementTree as ET
 import urllib.parse as urlpars
 import exceptionHandler as excpt
@@ -81,6 +82,7 @@ class JMScriptItems:
         self._xPathUsrParam_ = []                           # ??Список пользовательских параметров для формирования xPath
         self._currNode_ = {"elem": None, "hashTree": None}  # Текущий нод
         self._ancstNode_ = {"elem": None, "hashTree": None} # Нод предка
+        self.ancstNodeChain = deque()
         self._ancstNdClass_ = None                          # Класс нода предка
         
         self._curEntity_ = ''                               # Текущая заданная сущность (рабочая)
@@ -441,7 +443,7 @@ class JMScriptItems:
         
 ## Метод получения родительских нодов 
 
-    def _extrParntNodes_(self, node, upprNodeClass=None):
+    def _extrParntNodes_(self, node, upprNodeClass=None, apndQueue = False):
         ndName = self._getNodeName_(node)
         ndClass = self._getNodeClass_(node)
         self._xPathUsrParam_.append('')
@@ -458,9 +460,12 @@ class JMScriptItems:
         parentElemTag = self._getNodeElemTag_(parentHashTree)
         self._ancstNode_["elem"] = parentElemTag
         self._ancstNode_["hashTree"] = parentHashTree
+        tmpVar = self._ancstNode_
+        if (apndQueue):
+            self.ancstNodeChain.append(tmpVar.copy())
         del tmpLst
         while((upprNodeClass!=None) and (upprNodeClass!=self._getNodeClass_(self._ancstNode_["elem"]))):
-            self._extrParntNodes_(self._ancstNode_["elem"], upprNodeClass)
+            self._extrParntNodes_(self._ancstNode_["elem"], upprNodeClass, apndQueue)
             
     def _getNodeElemTag_(self, hashTr):
         return self._getNodeElem_('hashTree', hashTr)
@@ -1109,14 +1114,14 @@ class JMScriptItems:
 
 ###
     def updateXMLTree(self):
+        xSet = self._pumpUpXPathToBuild_('all_nestNodes_cls')
+        xSet_1 = self._pumpUpXPathToBuild_('samplArgs_coll')
+        xSet_2 = self._pumpUpXPathToBuild_('arg_NameAndValue')
+        xSet_3 = self._pumpUpXPathToBuild_('samplPath')
+        xSet_4 = self._pumpUpXPathToBuild_('rootElemHashTree')
         if len(self._linksToUpdate_) != 0:
             set(self._linksToUpdate_)
             self._linksToUpdate_ = tuple(self._linksToUpdate_)
-            xSet = self._pumpUpXPathToBuild_('all_nestNodes_cls')
-            xSet_1 = self._pumpUpXPathToBuild_('samplArgs_coll')
-            xSet_2 = self._pumpUpXPathToBuild_('arg_NameAndValue')
-            xSet_3 = self._pumpUpXPathToBuild_('samplPath')
-            xSet_4 = self._pumpUpXPathToBuild_('rootElemHashTree')
             for lnk in self._linksToUpdate_:
                 self.setEntity(lnk[4])
                 self._extrHostNode_(lnk[1])
