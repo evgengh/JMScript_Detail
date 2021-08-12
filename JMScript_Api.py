@@ -813,7 +813,10 @@ class JMScriptUsrApi(tk.Frame):
         print(self.jmscdObj.getScrListByKey(baseOper, funcFlag=True))
         baseSmplr = self.jmscdObj.getScrListByKey(baseOper, funcFlag=True)[0][1][0]
         self.jmscdObj._extrHostNode_(baseSmplr)
-        print(self.jmscdObj._currNode_['elem'].attrib)
+        self.jmscdObj._extrParntNodes_(self.jmscdObj._currNode_['elem'], 'ThroughputController', True)
+        #print("Debug!" + str(self.jmscdObj._getNestedElemsOfType_(self.jmscdObj._ancstNode_['elem'], 'HTTPSamplerProxy')))
+        self.jmscdObj._getNestedElemsOfType_(self.jmscdObj._ancstNode_['elem'], 'HTTPSamplerProxy')
+        print(self.jmscdObj._nestedElemsOfType_)
         self.jmscdObj._extrParntNodes_(self.jmscdObj._currNode_['elem'], 'ThreadGroup', True)
         print(self.jmscdObj._ancstNode_['elem'].attrib)
         tmpLst = [self.jmscdObj._getNodeName_(itm['elem']) for itm in self.jmscdObj.ancstNodeChain if self.jmscdObj._getNodeClass_(itm['elem']) == 'ThroughputController']

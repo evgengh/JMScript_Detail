@@ -84,6 +84,7 @@ class JMScriptItems:
         self._ancstNode_ = {"elem": None, "hashTree": None} # Нод предка
         self.ancstNodeChain = deque()
         self._ancstNdClass_ = None                          # Класс нода предка
+        self._nestedElemsOfType_ = []                       # Список дочерних элементов определенного типа, одно или многоуровой вложенности
         
         self._curEntity_ = ''                               # Текущая заданная сущность (рабочая)
         self._curDict_ = {}                                 # Текущий заданый словарь (рабочий)
@@ -466,6 +467,31 @@ class JMScriptItems:
         del tmpLst
         while((upprNodeClass!=None) and (upprNodeClass!=self._getNodeClass_(self._ancstNode_["elem"]))):
             self._extrParntNodes_(self._ancstNode_["elem"], upprNodeClass, apndQueue)
+
+
+    def _getNestedElemsOfType_(self, node, elemType_class, stopOnType_class = '_DummyClass_'):
+        tmpLst = []
+        self._xPathUsrParam_.append(elemType_class)
+        tmpLst.append(self._pumpUpXPathToBuild_('nodesWithClass'))
+        xSetStr = self._xPthBuild_(*tmpLst)
+        self._xPathUsrParam_.append(stopOnType_class)
+        xSetStr_lim = self._xPthBuild_(*tmpLst)
+        print(xSetStr)
+        self._currNode_['elem'] = node
+        self._currNode_['hashTree'] = self._getNodeElemHashTree_(node)
+        xSet_1 = self._pumpUpXPathToBuild_('all_nestNodes_cls')
+        #resLst.append(self._currNode_['hashTree'].findall(xSet_1[0]))
+        tmpLst = self._currNode_['hashTree'].findall(xSet_1[1])
+        for elm in tmpLst:
+            if (elm.find(xSetStr) is not None):
+                self._nestedElemsOfType_.append(elm)
+            elif (elm.find(xSetStr_lim) is None):
+                self._getNestedElemsOfType_(elm, elemType_class, stopOnType_class)
+            else:
+                pass
+        #resLst.appe[itm for itm in tmpLst if itm.find(xSetStr) != None]
+        #while ((stopOnType_class != None) and ())
+
             
     def _getNodeElemTag_(self, hashTr):
         return self._getNodeElem_('hashTree', hashTr)
@@ -1157,6 +1183,7 @@ class JMScriptItems:
     def _pumpUpXPathToBuild_(self, funcName=None):
         xAnyNode = './/*'
         xChldNodes = './'
+        xChldNodesFltrd = './*'
         xAnyPropName = '[@testname="'
         xAnyPropClass = '[@testclass="'
         xAnyPropEndBrkts = '"]' 
@@ -1182,6 +1209,8 @@ class JMScriptItems:
             return (xAnyPropClass, xAnyPropEndBrkts)
         elif funcName == 'dirChldNode':
             return (xChldNodes, '')
+        elif funcName == 'dirChldNodeFtlrd':
+            return (xChldNodesFltrd, '')
         elif funcName == 'parntNode':
             return (xReltvPrntNode, '')
         elif funcName == 'all_nestNodes_cls':
