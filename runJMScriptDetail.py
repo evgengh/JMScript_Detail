@@ -24,13 +24,14 @@ def _initLogger_():
     logger.addHandler(logHandler)
     return logger
 
-_checkLogFile_()
-offset = _getOffset_()
-logger = _initLogger_()
-logger.info("JMSrcipt started")
-
-root = tk.Tk()
-app = jmsca.JMScriptUsrApi(master=root)
-app._logOffset_ = offset
-app.activForm()
-app.mainloop()
+if __name__ == '__main__':
+    _checkLogFile_()
+    offset = _getOffset_()
+    logger = _initLogger_()
+    logger.info("JMSrcipt started")
+    
+    root = tk.Tk()
+    app = jmsca.JMScriptUsrApi(master=root)
+    app._logOffset_ = offset
+    app.activForm()
+    app.mainloop()
