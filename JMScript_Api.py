@@ -225,7 +225,7 @@ class JMScriptUsrApi(tk.Frame):
         self._lbThrptPrcLabel_.config(text="Test")
         self._frThrptPrcLabel_ = self.getSubWgts(self.thrptPrcLabel, tk._dummyFrame)
 
-        self.btStatFileForThrptCntrl = tk.Button(self._frThrptPrcLabel_, text="File with stat")
+        self.btStatFileForThrptCntrl = tk.Button(self._frThrptPrcLabel_, text="_to_be_developed_")
         self.btStatFileForThrptCntrl.config(command = self.test)
         self.btStatFileForThrptCntrl.pack(side=tk.LEFT)
 
