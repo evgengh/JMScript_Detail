@@ -48,6 +48,7 @@ import datetime
 import pickle
 import logging
 import functools
+from collections import deque
 import xml.etree.ElementTree as ET
 import urllib.parse as urlpars
 import exceptionHandler as excpt
@@ -59,7 +60,7 @@ class JMScriptItems:
 ## Инициализация при создании объекта
 
     def __init__(self):
-        self.setPATH = "/home/pi/Документы/jmProj/wrk_dir"                   # Рабочая директория
+        self.setPATH = "/path/to/your/work/dir"                   # Рабочая директория
         self.setDirMASK = '^uc[_0-9]+'                      # Маска для фильтра скриптов
         self.setPrefTrailInUniqNames = {"pref": '~', "trail": "#"} # Задаем символы префикса начала и разделителя перед номер для уник. имен
         
@@ -81,7 +82,9 @@ class JMScriptItems:
         self._xPathUsrParam_ = []                           # ??Список пользовательских параметров для формирования xPath
         self._currNode_ = {"elem": None, "hashTree": None}  # Текущий нод
         self._ancstNode_ = {"elem": None, "hashTree": None} # Нод предка
+        self.ancstNodeChain = deque()
         self._ancstNdClass_ = None                          # Класс нода предка
+        self._nestedElemsOfType_ = []                       # Список дочерних элементов определенного типа, одно или многоуровой вложенности
         
         self._curEntity_ = ''                               # Текущая заданная сущность (рабочая)
         self._curDict_ = {}                                 # Текущий заданый словарь (рабочий)
@@ -286,7 +289,7 @@ class JMScriptItems:
             self._extrCntrllNode_()
             self._dctSmplThru_ = {}
             self._currBkpCntrLst_ = self._thrGrpLst_.copy()
-            self._currDumpFName_ = 'pcklUnqNm_TstPl-' + self._getNodeName_(self._xTreeRoot_["elem"]).replace(' ', '%') 
+            self._currDumpFName_ = 'pcklUnqNm_TstPl-' + self._getNodeName_(self._xTreeRoot_["elem"]).replace(' ', '%').replace('-', '=')
             self._dumpOrigCntrlNm_()
             self.xmlTreeToFile(True, "Нужно сгенерировать осн. коллекц.\nдля ThreadGroup")
 
@@ -307,7 +310,7 @@ class JMScriptItems:
         tmpThGrLst = tmpNodeLst.copy()
         self._xElmUniqueName_(tmpNodeLst, 'TestPlan')
         if len(self._currBkpCntrLst_) == 0:
-            self._thrGrpLst_ = [tuple([thgr, '--', '--', '--', self._getNodeName_(thgr)]) for thgr in tmpThGrLst]
+            self._thrGrpLst_ = [tuple([thgr, self._getNodeName_(self._xTreeLocalRoot_['elem']), self._getNodeClass_(thgr), self._getNodeName_(thgr), self._getNodeName_(thgr)]) for thgr in tmpThGrLst]
         else:
             self._thrGrpLst_ = self._currBkpCntrLst_.copy()
             self._thrGrpLst_.reverse()
@@ -324,41 +327,55 @@ class JMScriptItems:
 
 ## Метод извлечения Нодов для всех элементов класса Controller для каждого элемента ThreadGroup
 
-    def _extrCntrllNode_(self, cntrlLst = None, thgrName = None, nodeClass = "Controller"):
+    def _extrCntrllNode_(self, cntrlLst = None, thgrName = None, nodeType = "Structure", nested = False):
         tmpLst = []
         xSet = self._pumpUpXPathToBuild_('all_nestNodes_cls')
-        if nodeClass == "Controller":
+        
+        if nodeType == "Structure":
             tmpLst = [[itm for itm in self._getNodeElemHashTree_(thgr[0]).findall(xSet[0]) if (self._checkElmTypeClls_(itm, "Controller"))] for thgr in self._thrGrpLst_]
             if self._smplThruVar_ == "TestPlan":
                 smplrLst = [itm for itm in self._xTreeRoot_["hashTree"].findall(xSet[0]) if (self._checkElmTypeClls_(itm, "HTTPSampler"))]
                 self._xTreeLocalRoot_ = self._xTreeRoot_.copy()
                 self._xElmUniqueName_(smplrLst, "TestPlan", smplrsThru = True)
                 del smplrLst
-        elif nodeClass == "Sampler":
-            tmpLst = [[itm for itm in self._getNodeElemHashTree_(cntrl).findall(xSet[1]) if (self._checkElmTypeClls_(itm, "HTTPSampler"))] for cntrl in cntrlLst]
+        elif nodeType == "Leaf":
+            for cntrl in cntrlLst:
+                locLst = []
+                for itm in self._getNodeElemHashTree_(cntrl).findall(xSet[1]):
+                    self._extrParntNodes_(itm)
+                    if (self._checkElmTypeClls_(itm, "HTTPSampler")) or (self._checkElmTypeClls_(itm, "Controller") and self._checkElmTypeClls_(self._ancstNode_['elem'], "Controller")):
+                        locLst.append(itm)                
+                tmpLst.append(locLst)
+                if len(locLst) == 0:
+                    self._currBkpCntrLst_.clear()
+                    self._currDumpFName_ = 'pcklUnqNm_Cntrl-' + thgrName.replace(' ', '%').replace('-', '=') + '-' + self._getNodeName_(cntrl).replace(" ", "%").replace('-', '=')
+                    self.logger.info("Nodes from Controller %s exctracted", self._getNodeName_(self._xTreeLocalRoot_["elem"]))
+                    self._dumpOrigCntrlNm_()                      
         else:
             raise Exception
+            
         for itmLst in tmpLst:
             self._currBkpCntrLst_.clear()
-            if nodeClass == "Controller":
+            if nodeType == "Structure":
                 itmLstCpy = itmLst.copy()
                 self._setLocalRootNode_(self._thrGrpLst_[tmpLst.index(itmLst)][0])
                 self._xElmNestedMapp_(itmLst, 'ThreadGroup')
                 self._xElmUniqueName_(itmLst, 'ThreadGroup')
-                self._currDumpFName_ = 'pcklUnqNm_ThGr-' + self._getNodeName_(self._xTreeLocalRoot_["elem"]).replace(" ", "%")
+                self._currDumpFName_ = 'pcklUnqNm_ThGr-' + self._getNodeName_(self._xTreeLocalRoot_["elem"]).replace(" ", "%").replace('-', '=')
                 self.logger.info("Nodes from ThreadGroup %s exctracted", self._getNodeName_(self._xTreeLocalRoot_["elem"]))
                 if self._smplThruVar_ == "ThreadGroup":
                     smplrLst = [itm for itm in self._xTreeLocalRoot_["hashTree"].findall(xSet[0]) if (self._checkElmTypeClls_(itm, "HTTPSampler"))]
                     self._xElmUniqueName_(smplrLst, "ThreadGroup", smplrsThru = True)
                     del smplrLst
                 self._dumpOrigCntrlNm_()
-                self._extrCntrllNode_(itmLstCpy, self._getNodeName_(self._xTreeLocalRoot_["elem"]), nodeClass = "Sampler")
-            elif nodeClass == "Sampler":
+                tmpLst[tmpLst.index(itmLst)] = [f'Processed list at index {tmpLst.index(itmLst)}']
+                self._extrCntrllNode_(itmLstCpy, self._getNodeName_(self._xTreeLocalRoot_["elem"]), nodeType = "Leaf")
+            elif nodeType == "Leaf":
                 self._setLocalRootNode_(cntrlLst[tmpLst.index(itmLst)])
                 cntrlClass = self._getNodeClass_(self._xTreeLocalRoot_["elem"])
                 tmpThru = (self._smplThruVar_ in ("ThreadGroup", "TestPlan"))
                 self._xElmUniqueName_(itmLst, cntrlClass, smplrsThru = tmpThru, thGrIfSmplr = thgrName)
-                self._currDumpFName_ = 'pcklUnqNm_Cntrl-' + thgrName.replace(' ', '%') + '-' + self._getNodeName_(self._xTreeLocalRoot_["elem"]).replace(" ", "%")
+                self._currDumpFName_ = 'pcklUnqNm_Cntrl-' + thgrName.replace(' ', '%').replace('-', '=') + '-' + self._getNodeName_(self._xTreeLocalRoot_["elem"]).replace(" ", "%").replace('-', '=')
                 self.logger.info("Nodes from Controller %s exctracted", self._getNodeName_(self._xTreeLocalRoot_["elem"]))
                 self._dumpOrigCntrlNm_()
                 del tmpThru
@@ -441,7 +458,7 @@ class JMScriptItems:
         
 ## Метод получения родительских нодов 
 
-    def _extrParntNodes_(self, node, upprNodeClass=None):
+    def _extrParntNodes_(self, node, upprNodeClass=None, apndQueue = False):
         ndName = self._getNodeName_(node)
         ndClass = self._getNodeClass_(node)
         self._xPathUsrParam_.append('')
@@ -458,9 +475,34 @@ class JMScriptItems:
         parentElemTag = self._getNodeElemTag_(parentHashTree)
         self._ancstNode_["elem"] = parentElemTag
         self._ancstNode_["hashTree"] = parentHashTree
+        tmpVar = self._ancstNode_
+        if (apndQueue):
+            self.ancstNodeChain.append(tmpVar.copy())
         del tmpLst
         while((upprNodeClass!=None) and (upprNodeClass!=self._getNodeClass_(self._ancstNode_["elem"]))):
-            self._extrParntNodes_(self._ancstNode_["elem"], upprNodeClass)
+            self._extrParntNodes_(self._ancstNode_["elem"], upprNodeClass, apndQueue)
+
+
+    def _getNestedElemsOfType_(self, node, elemType_class, stopOnType_class = '_DummyClass_', searchNested = True):
+        tmpLst = []
+        self._xPathUsrParam_.append(elemType_class)
+        tmpLst.append(self._pumpUpXPathToBuild_('nodesWithClass'))
+        xSetStr = self._xPthBuild_(*tmpLst)
+        self._xPathUsrParam_.append(stopOnType_class)
+        xSetStr_lim = self._xPthBuild_(*tmpLst)
+        print(xSetStr)
+        self._currNode_['elem'] = node
+        self._currNode_['hashTree'] = self._getNodeElemHashTree_(node)
+        xSet_1 = self._pumpUpXPathToBuild_('all_nestNodes_cls')
+        tmpLst = self._currNode_['hashTree'].findall(xSet_1[1])
+        for elm in tmpLst:
+            if (elm.find(xSetStr) is not None):
+                self._nestedElemsOfType_.append(elm)
+            elif ((elm.find(xSetStr_lim) is None) and (searchNested)):
+                self._getNestedElemsOfType_(elm, elemType_class, stopOnType_class)
+            else:
+                pass
+
             
     def _getNodeElemTag_(self, hashTr):
         return self._getNodeElem_('hashTree', hashTr)
@@ -538,15 +580,21 @@ class JMScriptItems:
         
     def _dumpOrigCntrlNm_(self):
         self._cutxElmPartInRestoCllctn_()
-        try:
-            with open(self.setPATH + '/jmProj_dumps/' + self._currDumpDir_ + '/' + self._currDumpFName_ + '.txt', 'wb+') as fObj:
-                self.logger.info("Dump file %s stored in dump directory", self._currDumpFName_)
-                pickle.dump(self._currBkpCntrLst_, fObj)
-            fObj.close()
-            return False
-        except:
-            print('Ошибка при дампе коллекции: ' + str(sys.exc_info()[0]))
-            return True
+        # try:
+        #     with open(self.setPATH + '/jmProj_dumps/' + self._currDumpDir_ + '/' + self._currDumpFName_ + '.txt', 'wb+') as fObj:
+        #         self.logger.info("Dump file %s stored in dump directory", self._currDumpFName_)
+        #         pickle.dump(self._currBkpCntrLst_, fObj)
+        #     fObj.close()
+        #     return False
+        # except:
+        #     print('Ошибка при дампе коллекции: ' + str(sys.exc_info()[0]))
+        #     return True
+        with open(self.setPATH + '/jmProj_dumps/' + self._currDumpDir_ + '/' + self._currDumpFName_ + '.txt',
+                  'wb+') as fObj:
+            self.logger.info("Dump file %s stored in dump directory", self._currDumpFName_)
+            pickle.dump(self._currBkpCntrLst_, fObj)
+        #fObj.close()
+        return False
 
 ## Метод восстановления ориг. названий нодов из сохраненных в файлах коллекциях
         
@@ -559,7 +607,7 @@ class JMScriptItems:
         if not (self._ifNotRestoreSamplrs_):
             tmpResLst.append(self._restorOrigCntrlNm_(smplrLst, 'Cntrl'))
         tmpResLst.append(self._restorOrigCntrlNm_(self._thrGrpLst_, 'ThGr'))
-        tmpResLst.append(self._restorOrigCntrlNm_([(self._xTreeRoot_["elem"], '--', '--', '--',self._getNodeName_(self._xTreeRoot_["elem"]).replace(' ', '%'))], 'TstPl'))
+        tmpResLst.append(self._restorOrigCntrlNm_([(self._xTreeRoot_["elem"], '--', '--', '--',self._getNodeName_(self._xTreeRoot_["elem"]).replace(' ', '%').replace('-', '='))], 'TstPl'))
         if tmpResLst.count(-1) != 0:
             self._infoMsg_ = "Ошибка при восстановлении\nориг. назв. элем. дерева,\nнужно проверить дампы.\nСм. лог"
         else:
@@ -585,15 +633,15 @@ class JMScriptItems:
             tmpFlLst = os.listdir('.')
             tmpFlLst = [fl.split('-') for fl in tmpFlLst if fl.split('-')[0] == "pcklUnqNm_Cntrl"]
             for flItm in tmpFlLst:
-                if cntrlLst.count(flItm[2][:len(flItm[2]) - 4].replace('%', ' ')) != 0:
+                if cntrlLst.count(flItm[2][:len(flItm[2]) - 4].replace('%', ' ').replace('=', '-')) != 0:
                     flLst.append('-'.join(flItm))
-                    cntrlLst.remove(flItm[2][:len(flItm[2]) - 4].replace('%', ' '))
+                    cntrlLst.remove(flItm[2][:len(flItm[2]) - 4].replace('%', ' ').replace('=', '-'))
             if len(cntrlLst) != 0:
                 self.logger.error("Error while loading collection for controllers: " + str(', '.join(cntrlLst)))
                 return -1
             os.chdir(self.setPATH)
         else:
-            flLst = ['pcklUnqNm_' + fPstfx + '-' + fl[4].replace(' ', '%') + '.txt' for fl in elmLst]
+            flLst = ['pcklUnqNm_' + fPstfx + '-' + fl[4].replace(' ', '%').replace('-', '=') + '.txt' for fl in elmLst]
         flLst.sort()
         for flNm in flLst:
             try:
@@ -700,7 +748,12 @@ class JMScriptItems:
         allSmplElms = [elm for elm in allTreeNodes if self._checkElmTypeClls_(elm, 'HTTPSampler')]
         self._currBkpCntrLst_.clear()
         tmpLst = []
-        self._curList_.extend([s.find(xSet_2[0]).text for f in [i.findall(xSet_1[0]) for i in allSmplElms] for s in f if len(f)>0])
+        ###
+        tmpLst = [k for tmp in [i.findall(xSet_1[0]) for i in allSmplElms] for k in tmp if k.find(xSet_2[0]) is None]
+        ##self._curList_.extend([s.find(xSet_2[0]).text for f in [i.findall(xSet_1[0]) for i in allSmplElms] for s in f if len(f)>0])
+        self._curList_.extend([s.find(xSet_2[0]).text for f in [i.findall(xSet_1[0]) for i in allSmplElms] for s in f if len(f) > 0 if s .find(xSet_2[0]) is not None])
+        ##self._curList_.extend([name for name in [s.find(xSet_2[0]) for f in [i.findall(xSet_1[0]) for i in allSmplElms] for s in f if len(f) > 0] if name is not None])
+        ###
         self._curLinkList_.extend([j.find(xSet_3[0]).text for j in allSmplElms])
         tmpLst = self._delDublValsFrColl_(self._curList_)
         self._curList_.clear()
@@ -726,9 +779,11 @@ class JMScriptItems:
             prntCntrlNm = self._getNodeName_(self._ancstNode_["elem"])
             self._storeOrigXElm_(j, prntCntrlNm, smplrCl, smplrNm, '--')
             tmpLinkLst = [self._curLinkDict_[p].append((prntCntrlNm, (smplrNm, None, 0))) for p in self._curLinkList_ if p==j.find(xSet_3[0]).text]
-            jArgsLst = [l for l in j.findall(xSet_1[0])]
-            for z in jArgsLst:
-                tmpLst=[self._curDict_[k].append((prntCntrlNm, (smplrNm, z.find(xSet_2[1]).text, 0))) for k in self._curList_ if k == z.find(xSet_2[0]).text]
+            jArgsLst = [l for l in j.findall(xSet_1[0]) if l.find(xSet_2[0]) is not None]
+            if (len(jArgsLst) > 0):
+                for z in jArgsLst:
+                    tmpLst = [self._curDict_[k].append((prntCntrlNm, (smplrNm, z.find(xSet_2[1]).text, 0))) for k in
+                              self._curList_ if k == z.find(xSet_2[0]).text]
             
         del tmpLst
         del resDtTmp
@@ -1096,14 +1151,14 @@ class JMScriptItems:
 
 ###
     def updateXMLTree(self):
+        xSet = self._pumpUpXPathToBuild_('all_nestNodes_cls')
+        xSet_1 = self._pumpUpXPathToBuild_('samplArgs_coll')
+        xSet_2 = self._pumpUpXPathToBuild_('arg_NameAndValue')
+        xSet_3 = self._pumpUpXPathToBuild_('samplPath')
+        xSet_4 = self._pumpUpXPathToBuild_('rootElemHashTree')
         if len(self._linksToUpdate_) != 0:
             set(self._linksToUpdate_)
             self._linksToUpdate_ = tuple(self._linksToUpdate_)
-            xSet = self._pumpUpXPathToBuild_('all_nestNodes_cls')
-            xSet_1 = self._pumpUpXPathToBuild_('samplArgs_coll')
-            xSet_2 = self._pumpUpXPathToBuild_('arg_NameAndValue')
-            xSet_3 = self._pumpUpXPathToBuild_('samplPath')
-            xSet_4 = self._pumpUpXPathToBuild_('rootElemHashTree')
             for lnk in self._linksToUpdate_:
                 self.setEntity(lnk[4])
                 self._extrHostNode_(lnk[1])
@@ -1139,6 +1194,7 @@ class JMScriptItems:
     def _pumpUpXPathToBuild_(self, funcName=None):
         xAnyNode = './/*'
         xChldNodes = './'
+        xChldNodesFltrd = './*'
         xAnyPropName = '[@testname="'
         xAnyPropClass = '[@testclass="'
         xAnyPropEndBrkts = '"]' 
@@ -1164,6 +1220,8 @@ class JMScriptItems:
             return (xAnyPropClass, xAnyPropEndBrkts)
         elif funcName == 'dirChldNode':
             return (xChldNodes, '')
+        elif funcName == 'dirChldNodeFtlrd':
+            return (xChldNodesFltrd, '')
         elif funcName == 'parntNode':
             return (xReltvPrntNode, '')
         elif funcName == 'all_nestNodes_cls':
