@@ -60,7 +60,7 @@ class JMScriptItems:
 ## Инициализация при создании объекта
 
     def __init__(self):
-        self.setPATH = "/path/to/your/work/dir"                   # Рабочая директория
+        self.setPATH = "/home/user/work_dir/jm_scripts_and_files/"                   # Рабочая директория
         self.setDirMASK = '^uc[_0-9]+'                      # Маска для фильтра скриптов
         self.setPrefTrailInUniqNames = {"pref": '~', "trail": "#"} # Задаем символы префикса начала и разделителя перед номер для уник. имен
         
@@ -1166,7 +1166,7 @@ class JMScriptItems:
                 nestSmplrs = [elm for elm in tmpLst if self._checkElmTypeClls_(elm, 'HTTPSampler')]
                 smplr = [smpl for smpl in nestSmplrs if self._getNodeName_(smpl) == lnk[2]].pop(0)
                 if lnk[3] == 'd':
-                    tstElmArgs = smplr.findall(xSet_1[0])
+                    tstElmArgs = [smpl for smpl in smplr.findall(xSet_1[0]) if smpl.attrib.setdefault('elementType', None) == 'HTTPArgument']
                     arg = [argN for argN in tstElmArgs if argN.find(xSet_2[0]).text == lnk[0]].pop(0)
                     strToInsert = self.getValueByKeyScrFunc(lnk)[0][1][0][1]
                     arg.find(xSet_2[1]).text = strToInsert

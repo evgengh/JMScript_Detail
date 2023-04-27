@@ -29,7 +29,7 @@ if __name__ == '__main__':
     offset = _getOffset_()
     logger = _initLogger_()
     logger.info("JMSrcipt started")
-    
+
     root = tk.Tk()
     app = jmsca.JMScriptUsrApi(master=root)
     app._logOffset_ = offset
