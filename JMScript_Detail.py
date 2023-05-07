@@ -52,6 +52,7 @@ from collections import deque
 import xml.etree.ElementTree as ET
 import urllib.parse as urlpars
 import exceptionHandler as excpt
+from elemsOfType import AllowedThrdGroups, AllowedTestPlan, AllowedControllers
 
 class JMScriptItems:
 
@@ -60,7 +61,7 @@ class JMScriptItems:
 ## Инициализация при создании объекта
 
     def __init__(self):
-        self.setPATH = "/home/user/work_dir/jm_scripts_and_files/"                   # Рабочая директория
+        self.setPATH = "/home/evgen/wrk_dir/jmscript/"                   # Рабочая директория
         self.setDirMASK = '^uc[_0-9]+'                      # Маска для фильтра скриптов
         self.setPrefTrailInUniqNames = {"pref": '~', "trail": "#"} # Задаем символы префикса начала и разделителя перед номер для уник. имен
         
@@ -304,11 +305,19 @@ class JMScriptItems:
     
     def _extrThreadGroupNode_(self):
         self._xTreeLocalRoot_ = self._xTreeRoot_.copy()
-        xSet = self._pumpUpXPathToBuild_('ThreadGroups')
-        tmpNodeLst = self._xTreeLocalRoot_["hashTree"].findall(xSet[0])
+        xSet_1 = self._pumpUpXPathToBuild_('ThreadGroups')
+        tmpNodeLst = []
+        for thrd in AllowedThrdGroups.TypeThreadGroup:
+            tmpLst = []
+            tmpLst.append(self._pumpUpXPathToBuild_('anyNode'))
+            tmpLst.append((self._pumpUpXPathToBuild_('nodesWithClass')[0], ''))
+            tmpLst.append((thrd.value, ''))
+            tmpLst.append((self._pumpUpXPathToBuild_('nodesWithClass')[1], ''))
+            xSetStr = self._xPthBuild_(*tmpLst)
+            tmpNodeLst.extend(self._xTreeLocalRoot_["hashTree"].findall(xSetStr))
         self._currBkpCntrLst_.clear()
         tmpThGrLst = tmpNodeLst.copy()
-        self._xElmUniqueName_(tmpNodeLst, 'TestPlan')
+        self._xElmUniqueName_(tmpNodeLst, AllowedTestPlan.TypeTestPlan)
         if len(self._currBkpCntrLst_) == 0:
             self._thrGrpLst_ = [tuple([thgr, self._getNodeName_(self._xTreeLocalRoot_['elem']), self._getNodeClass_(thgr), self._getNodeName_(thgr), self._getNodeName_(thgr)]) for thgr in tmpThGrLst]
         else:
@@ -336,7 +345,7 @@ class JMScriptItems:
             if self._smplThruVar_ == "TestPlan":
                 smplrLst = [itm for itm in self._xTreeRoot_["hashTree"].findall(xSet[0]) if (self._checkElmTypeClls_(itm, "HTTPSampler"))]
                 self._xTreeLocalRoot_ = self._xTreeRoot_.copy()
-                self._xElmUniqueName_(smplrLst, "TestPlan", smplrsThru = True)
+                self._xElmUniqueName_(smplrLst, AllowedTestPlan.TypeTestPlan, smplrsThru = True)
                 del smplrLst
         elif nodeType == "Leaf":
             for cntrl in cntrlLst:
@@ -359,13 +368,13 @@ class JMScriptItems:
             if nodeType == "Structure":
                 itmLstCpy = itmLst.copy()
                 self._setLocalRootNode_(self._thrGrpLst_[tmpLst.index(itmLst)][0])
-                self._xElmNestedMapp_(itmLst, 'ThreadGroup')
-                self._xElmUniqueName_(itmLst, 'ThreadGroup')
+                self._xElmNestedMapp_(itmLst, AllowedThrdGroups.TypeThreadGroup)
+                self._xElmUniqueName_(itmLst, AllowedThrdGroups.TypeThreadGroup)
                 self._currDumpFName_ = 'pcklUnqNm_ThGr-' + self._getNodeName_(self._xTreeLocalRoot_["elem"]).replace(" ", "%").replace('-', '=')
                 self.logger.info("Nodes from ThreadGroup %s exctracted", self._getNodeName_(self._xTreeLocalRoot_["elem"]))
                 if self._smplThruVar_ == "ThreadGroup":
                     smplrLst = [itm for itm in self._xTreeLocalRoot_["hashTree"].findall(xSet[0]) if (self._checkElmTypeClls_(itm, "HTTPSampler"))]
-                    self._xElmUniqueName_(smplrLst, "ThreadGroup", smplrsThru = True)
+                    self._xElmUniqueName_(smplrLst, AllowedThrdGroups.TypeThreadGroup, smplrsThru = True)
                     del smplrLst
                 self._dumpOrigCntrlNm_()
                 tmpLst[tmpLst.index(itmLst)] = [f'Processed list at index {tmpLst.index(itmLst)}']
@@ -374,7 +383,7 @@ class JMScriptItems:
                 self._setLocalRootNode_(cntrlLst[tmpLst.index(itmLst)])
                 cntrlClass = self._getNodeClass_(self._xTreeLocalRoot_["elem"])
                 tmpThru = (self._smplThruVar_ in ("ThreadGroup", "TestPlan"))
-                self._xElmUniqueName_(itmLst, cntrlClass, smplrsThru = tmpThru, thGrIfSmplr = thgrName)
+                self._xElmUniqueName_(itmLst, AllowedControllers.ControllerType, smplrsThru = tmpThru, thGrIfSmplr = thgrName)
                 self._currDumpFName_ = 'pcklUnqNm_Cntrl-' + thgrName.replace(' ', '%').replace('-', '=') + '-' + self._getNodeName_(self._xTreeLocalRoot_["elem"]).replace(" ", "%").replace('-', '=')
                 self.logger.info("Nodes from Controller %s exctracted", self._getNodeName_(self._xTreeLocalRoot_["elem"]))
                 self._dumpOrigCntrlNm_()
@@ -386,7 +395,7 @@ class JMScriptItems:
 
 ## Метод создание префиксов для структуры составных вложенных элементов (для идентификации в коллекции)
         
-    def _xElmNestedMapp_(self, cntrLst, parntNdClass):
+    def _xElmNestedMapp_(self, cntrLst, parntNdType):
         tmpLst = []
         tmpVar = None
         tmpVarNew = None
@@ -401,7 +410,7 @@ class JMScriptItems:
                         newPropVal = self.setPrefTrailInUniqNames["pref"] + prop
                         self._setNodeName_(itm, newPropVal)
                         elmJmClass = self._getNodeClass_(itm)
-                        self._extrParntNodes_(itm, parntNdClass)
+                        self._extrParntNodes_(itm, parntNdType)
                         prntNdName = self._getNodeName_(self._ancstNode_["elem"])
                         self._storeOrigXElm_(itm, prntNdName, elmJmClass, prop, newPropVal)
         del tmpLst
@@ -410,7 +419,7 @@ class JMScriptItems:
 
 ## Метод создание нумерации для структуры составных элементов (для идентификации в коллекции)
 
-    def _xElmUniqueName_(self, revCntrLst, parntNdClass, smplrsThru = False, thGrIfSmplr = None):
+    def _xElmUniqueName_(self, revCntrLst, parntNdType, smplrsThru = False, thGrIfSmplr = None):
         tmpVar = None
         tmpVarNode = None
         tmpVarNew = None
@@ -427,7 +436,7 @@ class JMScriptItems:
             if itmCnt == 1:
                 if (smplrsThru) and (itm in self._dctSmplThru_.keys()):
                     elmJmClass = self._getNodeClass_(revCntrLst[0])
-                    self._extrParntNodes_(revCntrLst[0], parntNdClass)
+                    self._extrParntNodes_(revCntrLst[0], parntNdType)
                     prntNdName = self._getNodeName_(self._ancstNode_["elem"])
                     self._storeOrigXElm_(revCntrLst[0], *tmpThGrIfSmplr, prntNdName, elmJmClass, self._dctSmplThru_[itm], itm)
                 tmpLst.pop(0)
@@ -439,7 +448,7 @@ class JMScriptItems:
                 propNameNew = propName +  self.setPrefTrailInUniqNames["trail"] + str(itmCnt)
                 self._setNodeName_(revCntrLst[itmIndx], propNameNew)
                 elmJmClass = self._getNodeClass_(revCntrLst[itmIndx])
-                self._extrParntNodes_(revCntrLst[itmIndx], parntNdClass)
+                self._extrParntNodes_(revCntrLst[itmIndx], parntNdType)
                 prntNdName = self._getNodeName_(self._ancstNode_["elem"])
                 if (smplrsThru):
                     self._dctSmplThru_[propNameNew] = propName
@@ -458,7 +467,7 @@ class JMScriptItems:
         
 ## Метод получения родительских нодов 
 
-    def _extrParntNodes_(self, node, upprNodeClass=None, apndQueue = False):
+    def _extrParntNodes_(self, node, upprNodeType = None, apndQueue = False):
         ndName = self._getNodeName_(node)
         ndClass = self._getNodeClass_(node)
         self._xPathUsrParam_.append('')
@@ -479,9 +488,8 @@ class JMScriptItems:
         if (apndQueue):
             self.ancstNodeChain.append(tmpVar.copy())
         del tmpLst
-        while((upprNodeClass!=None) and (upprNodeClass!=self._getNodeClass_(self._ancstNode_["elem"]))):
-            self._extrParntNodes_(self._ancstNode_["elem"], upprNodeClass, apndQueue)
-
+        while((upprNodeType != None) and (not any(tp.value == self._getNodeClass_(self._ancstNode_["elem"]) for tp in iter(upprNodeType)))):
+            self._extrParntNodes_(self._ancstNode_["elem"], upprNodeType, apndQueue)
 
     def _getNestedElemsOfType_(self, node, elemType_class, stopOnType_class = '_DummyClass_', searchNested = True):
         tmpLst = []
@@ -607,7 +615,7 @@ class JMScriptItems:
         if not (self._ifNotRestoreSamplrs_):
             tmpResLst.append(self._restorOrigCntrlNm_(smplrLst, 'Cntrl'))
         tmpResLst.append(self._restorOrigCntrlNm_(self._thrGrpLst_, 'ThGr'))
-        tmpResLst.append(self._restorOrigCntrlNm_([(self._xTreeRoot_["elem"], '--', '--', '--',self._getNodeName_(self._xTreeRoot_["elem"]).replace(' ', '%').replace('-', '='))], 'TstPl'))
+        tmpResLst.append(self._restorOrigCntrlNm_([(self._xTreeRoot_["elem"], '--', '--', '--', self._getNodeName_(self._xTreeRoot_["elem"]).replace(' ', '%').replace('-', '='))], 'TstPl'))
         if tmpResLst.count(-1) != 0:
             self._infoMsg_ = "Ошибка при восстановлении\nориг. назв. элем. дерева,\nнужно проверить дампы.\nСм. лог"
         else:
@@ -635,6 +643,8 @@ class JMScriptItems:
             for flItm in tmpFlLst:
                 if cntrlLst.count(flItm[2][:len(flItm[2]) - 4].replace('%', ' ').replace('=', '-')) != 0:
                     flLst.append('-'.join(flItm))
+                    if (flItm[2][:len(flItm[2]) - 4].replace('%', ' ').replace('=', '-')) not in cntrlLst:
+                        pass
                     cntrlLst.remove(flItm[2][:len(flItm[2]) - 4].replace('%', ' ').replace('=', '-'))
             if len(cntrlLst) != 0:
                 self.logger.error("Error while loading collection for controllers: " + str(', '.join(cntrlLst)))
