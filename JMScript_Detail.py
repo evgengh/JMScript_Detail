@@ -61,7 +61,7 @@ class JMScriptItems:
 ## Инициализация при создании объекта
 
     def __init__(self):
-        self.setPATH = "/home/evgen/wrk_dir/jmscript/"                   # Рабочая директория
+        self.setPATH = "/home/user/wrk_dir/"                   # Рабочая директория
         self.setDirMASK = '^uc[_0-9]+'                      # Маска для фильтра скриптов
         self.setPrefTrailInUniqNames = {"pref": '~', "trail": "#"} # Задаем символы префикса начала и разделителя перед номер для уник. имен
         
